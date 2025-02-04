@@ -1,173 +1,95 @@
-const argon2 = require("argon2")
-const jwt = require("jsonwebtoken")
+// auth.js (version ESM)
 
-// Options de hachage Argon2 conformes aux recommandations OWASP
+import argon2 from "argon2";
+import jwt from "jsonwebtoken";
+
+// Options de hachage pour Argon2
 const hashingOptions = {
   type: argon2.argon2id,
-  memoryCost: 2 ** 16, // 64 MiB
-  timeCost: 5, // 5 itérations
-  parallelism: 1, // 1 thread
-  saltLength: 32, // Sel de 32 octets
-  hashLength: 32, // Hachage de 32 octets
-}
+  memoryCost: 2 ** 16, // 64 MB
+  timeCost: 5,
+  parallelism: 1,
+};
 
-// Middleware de hachage de mot de passe
-const hashPassword = async (req, res, next) => {
+// Middleware pour hacher le mot de passe avant de le stocker
+export const hashPassword = async (req, res, next) => {
   try {
-    // Validation de la présence et de la longueur minimale du mot de passe
-    if (!req.body.password || req.body.password.length < 8) {
-      return res.status(400).json({
-        error: "Le mot de passe doit comporter au moins 8 caractères",
-      })
+    const { motDePasse } = req.body;
+
+    if (!motDePasse) {
+      return res.status(400).send("Le mot de passe est requis.");
     }
 
-    const hashedPassword = await argon2.hash(req.body.password, hashingOptions)
-    req.body.hashedPassword = hashedPassword
-    delete req.body.password
-    next()
+    // Hachage du mot de passe
+    const hashedPassword = await argon2.hash(motDePasse, hashingOptions);
+
+    // Remplacer le mot de passe en clair par le mot de passe haché
+    req.body.mot_de_passe = hashedPassword;
+
+    next();
   } catch (err) {
-    console.error("Erreur de hachage du mot de passe :", err)
-    res.status(500).json({
-      error: "Erreur interne lors du traitement du mot de passe",
-    })
+    console.error(err);
+    res.sendStatus(500);
   }
-}
+};
 
-// Génération du token JWT avec des mesures de sécurité supplémentaires
-const generateAccessToken = (user) => {
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
-    throw new Error("JWT_SECRET doit comporter au moins 32 caractères")
-  }
-
-  // Log de l'objet user
-  console.info("Objet user :", user)
-
-  const payload = {
-    id: user.id,
-    role: user.role,
-    pseudo: user.pseudo,
-    photoDeProfil: user.photo_profil, // Ajout de photoDeProfil au payload
-    tokenVersion: user.tokenVersion || 0,
-    iat: Math.floor(Date.now() / 1000),
-  }
-
-  console.info("Payload utilisé pour le token :", payload)
-
-  const token = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: "2h",
-    algorithm: "HS256", // Spécification explicite de l'algorithme
-  })
-
-  // Log du token généré
-  console.info("Token généré :", token)
-
-  return token
-}
-
-// Vérification du mot de passe et génération du token
-const verifyPassword = async (req, res) => {
+// Vérification du mot de passe lors de la connexion
+export const verifyPassword = async (req, res) => {
   try {
-    // Log de req.utilisateur
-    console.info("Utilisateur authentifié :", req.utilisateur)
+    const { motDePasse } = req.body;
+    const { mot_de_passe: hashedPassword } = req.utilisateur;
 
-    if (!req.utilisateur?.hashedPassword || !req.body?.password) {
-      return res.status(400).json({
-        error: "Identifiants manquants",
-      })
+    if (!motDePasse) {
+      return res.status(400).send("Le mot de passe est requis.");
     }
 
-    const isVerified = await argon2.verify(
-      req.utilisateur.hashedPassword,
-      req.body.password
-    )
+    // Vérification du mot de passe
+    const isVerified = await argon2.verify(hashedPassword, motDePasse);
 
     if (isVerified) {
-      const token = generateAccessToken(req.utilisateur)
+      // Génération du token JWT
+      const payload = { sub: req.utilisateur.id };
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "12h",
+      });
 
-      // Décodage du token pour vérifier le payload
-      const decodedPayload = jwt.decode(token)
+      // Suppression du mot de passe avant de renvoyer l'utilisateur
+      delete req.utilisateur.mot_de_passe;
 
-      // Log du payload décodé
-      console.info("Payload du token envoyé :", decodedPayload)
-
-      // Ne pas renvoyer de données sensibles au client
-      const safeUser = {
-        id: req.utilisateur.id,
-        pseudo: req.utilisateur.pseudo,
-        role: req.utilisateur.role,
-        photoDeProfil: req.utilisateur.photo_profil,
-      }
-
-      res.json({ token, user: safeUser })
+      res.status(200).send({ token, utilisateur: req.utilisateur });
     } else {
-      res.status(401).json({
-        error: "Identifiants invalides",
-      })
+      res.status(401).send("Mot de passe incorrect.");
     }
   } catch (err) {
-    console.error("Erreur de vérification du mot de passe :", err)
-    res.status(500).json({
-      error: "Erreur interne lors de l'authentification",
-    })
+    console.error(err);
+    res.sendStatus(500);
   }
-}
+};
 
-// Middleware de vérification du token avec des contrôles de sécurité supplémentaires
-const verifyToken = (req, res, next) => {
+// Middleware pour vérifier le token JWT
+export const verifyToken = (req, res, next) => {
   try {
-    const authHeader = req.get("Authorization")
+    const authorizationHeader = req.get("Authorization");
 
-    if (!authHeader) {
-      return res.status(401).json({
-        error: "En-tête d'autorisation manquant",
-      })
+    if (!authorizationHeader) {
+      return res.status(401).send("Header d'authentification manquant.");
     }
 
-    const [type, token] = authHeader.split(" ")
+    const [type, token] = authorizationHeader.split(" ");
 
     if (type !== "Bearer" || !token) {
-      return res.status(401).json({
-        error: "Format d'autorisation invalide",
-      })
+      return res.status(401).send("Type d'authentification invalide.");
     }
 
-    // Log du token reçu dans l'en-tête Authorization
-    console.info("Token reçu :", token)
+    // Vérification du token
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Vérification du token et des revendications supplémentaires
-    const payload = jwt.verify(token, process.env.JWT_SECRET, {
-      algorithms: ["HS256"], // Autoriser uniquement l'algorithme HS256
-    })
+    // Ajout des informations du token à la requête
+    req.payload = payload;
 
-    // Log du payload du token vérifié
-    console.info("Payload du token vérifié :", payload)
-
-    // Vérification explicite de l'expiration du token
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      return res.status(401).json({
-        error: "Le token a expiré",
-      })
-    }
-
-    req.payload = payload
-    next()
+    next();
   } catch (err) {
-    console.error("Erreur de vérification du token :", err)
-    if (err instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({
-        error: "Token invalide",
-      })
-    } else {
-      res.status(500).json({
-        error: "Erreur interne lors de la vérification du token",
-      })
-    }
+    console.error(err);
+    res.status(401).send("Token invalide ou expiré.");
   }
-}
-
-module.exports = {
-  hashPassword,
-  verifyPassword,
-  verifyToken,
-  hashingOptions,
-}
+};

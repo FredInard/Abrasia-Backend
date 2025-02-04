@@ -1,3 +1,4 @@
+
 class AbstractManager {
   constructor({ table }) {
     this.table = table
@@ -24,4 +25,5 @@ class AbstractManager {
   }
 }
 
-module.exports = AbstractManager
+
+export default AbstractManager;

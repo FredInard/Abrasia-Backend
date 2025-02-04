@@ -1,6 +1,6 @@
 // controllers/RepasControllers.js
 
-const models = require("../models")
+import models from "../models/index.js";
 
 class RepasControllers {
   // GET /repas
@@ -114,4 +114,5 @@ class RepasControllers {
   }
 }
 
-module.exports = RepasControllers
+
+export default RepasControllers;

@@ -1,4 +1,4 @@
-const AbstractManager = require("./AbstractManager")
+import AbstractManager from "./AbstractManager.js";
 
 class LogManager extends AbstractManager {
   constructor() {
@@ -34,4 +34,4 @@ class LogManager extends AbstractManager {
   }
 }
 
-module.exports = LogManager
+export default LogManager;

@@ -1,6 +1,9 @@
 // controllers/CovoiturageControllers.js
 
-const models = require("../models")
+import models from "../models/index.js"; // Adapter selon votre structure de projet
+
+
+
 
 class CovoiturageControllers {
   // GET /covoiturages
@@ -114,4 +117,5 @@ class CovoiturageControllers {
   }
 }
 
-module.exports = CovoiturageControllers
+
+export default CovoiturageControllers;

@@ -1,4 +1,4 @@
-const AbstractManager = require("./AbstractManager")
+import AbstractManager from "./AbstractManager.js";
 
 class RepasManager extends AbstractManager {
   constructor() {
@@ -80,5 +80,5 @@ class RepasManager extends AbstractManager {
     )
   }
 }
+export default RepasManager;
 
-module.exports = RepasManager

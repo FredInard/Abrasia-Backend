@@ -1,39 +1,41 @@
-const AbstractManager = require("./AbstractManager")
+// UtilisateurManager.js
+
+import AbstractManager from "./AbstractManager.js";
 
 class UtilisateurManager extends AbstractManager {
   constructor() {
-    super({ table: "utilisateur" })
+    super({ table: "utilisateur" });
   }
 
   findByEmailOrPseudo(email, pseudo) {
     return this.database.query(
       `SELECT * FROM ${this.table} WHERE email = ? OR pseudo = ?`,
       [email, pseudo]
-    )
+    );
   }
 
   // Anonymise toutes les infos (sauf id, date_inscription)
   anonymize(id) {
     return this.database.query(
       `UPDATE ${this.table}
-     SET
-       nom = '...',
-       prenom = '...',
-       email = '...',
-       pseudo = '...',
-       role = 'inactif',
-       date_naissance = NULL,
-       adresse = '...',
-       ville = '...',
-       telephone = '...',
-       bio = '...',
-       photo_profil = NULL,
-       hashedPassword = 'AnonymizedPassword123!',
-       date_inscription = date_inscription,
-       dernier_login = NULL
-     WHERE id = ?`,
+       SET
+         nom = '...',
+         prenom = '...',
+         email = '...',
+         pseudo = '...',
+         role = 'inactif',
+         date_naissance = NULL,
+         adresse = '...',
+         ville = '...',
+         telephone = '...',
+         bio = '...',
+         photo_profil = NULL,
+         hashedPassword = 'AnonymizedPassword123!',
+         date_inscription = date_inscription,
+         dernier_login = NULL
+       WHERE id = ?`,
       [id]
-    )
+    );
   }
 
   // Insérer un nouvel utilisateur
@@ -71,14 +73,27 @@ class UtilisateurManager extends AbstractManager {
         utilisateur.cgu_accepted ? 1 : 0,
         utilisateur.cookies_accepted ? 1 : 0,
       ]
-    )
+    );
   }
 
   // Mettre à jour un utilisateur existant
   update(utilisateur) {
-    console.info("utilisateur manager", utilisateur) // Placer le console.info en dehors de return
+    console.info("utilisateur manager", utilisateur);
     return this.database.query(
-      `UPDATE ${this.table} SET nom = ?, prenom = ?, email = ?, pseudo = ?, role = ?, date_naissance = ?, adresse = ?, ville = ?, telephone = ?, bio = ?, photo_profil = ? WHERE id = ?`,
+      `UPDATE ${this.table}
+       SET
+         nom = ?,
+         prenom = ?,
+         email = ?,
+         pseudo = ?,
+         role = ?,
+         date_naissance = ?,
+         adresse = ?,
+         ville = ?,
+         telephone = ?,
+         bio = ?,
+         photo_profil = ?
+       WHERE id = ?`,
       [
         utilisateur.nom,
         utilisateur.prenom,
@@ -93,27 +108,30 @@ class UtilisateurManager extends AbstractManager {
         utilisateur.photo_profil || null,
         utilisateur.id,
       ]
-    )
+    );
   }
 
   // Trouver tous les utilisateurs
   findAll() {
     return this.database.query(
-      `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login FROM ${this.table}`
-    )
+      `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login
+       FROM ${this.table}`
+    );
   }
 
   // Trouver un utilisateur par ID
   find(id) {
     return this.database.query(
-      `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login FROM ${this.table} WHERE id = ?`,
+      `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login
+       FROM ${this.table}
+       WHERE id = ?`,
       [id]
-    )
+    );
   }
 
   // Supprimer un utilisateur par ID
   delete(id) {
-    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id]);
   }
 
   // Trouver un utilisateur par pseudo
@@ -121,15 +139,17 @@ class UtilisateurManager extends AbstractManager {
     return this.database.query(
       `SELECT id, pseudo FROM ${this.table} WHERE pseudo = ?`,
       [pseudo]
-    )
+    );
   }
 
   // Trouver un utilisateur par email avec le mot de passe
   findByEmailWithPassword(email) {
     return this.database.query(
-      `SELECT id, email, hashedPassword, role, pseudo, photo_profil FROM ${this.table} WHERE email = ?`,
+      `SELECT id, email, hashedPassword, role, pseudo, photo_profil
+       FROM ${this.table}
+       WHERE email = ?`,
       [email]
-    )
+    );
   }
 
   // Mettre à jour le mot de passe
@@ -137,7 +157,7 @@ class UtilisateurManager extends AbstractManager {
     return this.database.query(
       `UPDATE ${this.table} SET hashedPassword = ? WHERE id = ?`,
       [hashedPassword, id]
-    )
+    );
   }
 
   // Mettre à jour la photo de profil
@@ -145,23 +165,26 @@ class UtilisateurManager extends AbstractManager {
     return this.database.query(
       `UPDATE ${this.table} SET photo_profil = ? WHERE id = ?`,
       [photoProfil, id]
-    )
+    );
   }
 
   // Récupérer le profil d'un utilisateur par ID (sans le mot de passe)
   findProfileById(id) {
     return this.database.query(
-      `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login FROM ${this.table} WHERE id = ?`,
+      `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login
+       FROM ${this.table}
+       WHERE id = ?`,
       [id]
-    )
+    );
   }
 
   // Recherche d'un utilisateur par email
   findByEmail(email) {
     return this.database.query(`SELECT * FROM ${this.table} WHERE email = ?`, [
       email,
-    ])
+    ]);
   }
 }
 
-module.exports = UtilisateurManager
+// Export par défaut
+export default UtilisateurManager;

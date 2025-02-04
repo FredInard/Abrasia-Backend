@@ -1,4 +1,4 @@
-const AbstractManager = require("./AbstractManager")
+import AbstractManager from "./AbstractManager.js";
 
 class PartieManager extends AbstractManager {
   constructor() {
@@ -249,4 +249,5 @@ JOIN
   }
 }
 
-module.exports = PartieManager
+
+export default PartieManager;

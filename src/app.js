@@ -1,57 +1,67 @@
-// Importation de modules Node.js pour plus tard
-require("dotenv").config()
-// const port = process.env.APP_PORT ?? 5000;
-// Lors de la phase de déploiement, le serveur nous donnera un numéro de port qui remplacera les ??, sinon il prendra le port 5000 par défaut.
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import router from "./router.js";
 
-const fs = require("node:fs")
-const path = require("node:path")
+// Chargement des variables d'environnement
+dotenv.config();
 
-// Création de l'application Express
-const express = require("express")
-const app = express()
+// Récupération de __dirname (compatible ESM)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Utilisation de middlewares au niveau de l'application
-app.use(express.json())
+console.info("Environnement:", process.env.NODE_ENV || "Développement");
+console.info("Initialisation de l'application Express...");
 
-const cors = require("cors")
-const cookieParser = require("cookie-parser")
+// Initialisation de l'application Express
+const app = express();
 
-app.use(cookieParser())
-
+// Middlewares
+console.info("Configuration des middlewares...");
+app.use(express.json());
+app.use(cookieParser());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ?? "http://localhost:3000",
-    credentials: true, // Autorise les requêtes avec des informations d'identification
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true,
     optionsSuccessStatus: 200,
   })
-)
+);
 
-// Importation et montage des routes de l'API
-const router = require("./router")
-app.use(router)
+// Routing principal
+console.info("Mise en place du routeur principal...");
+app.use(router);
 
-// Servir le dossier `backend/public` pour les ressources publiques
-app.use("/public", express.static(path.join(__dirname, "../public")))
+// Gestion des ressources statiques du dossier public
+console.info("Serve les ressources statiques du dossier 'public'...");
+app.use("/public", express.static(path.join(__dirname, "..", "public")));
 
-// Servir l'application REACT
-const reactIndexFile = path.join(
-  __dirname,
-  "..",
-  "..",
-  "frontend",
-  "dist",
-  "index.html"
-)
+// Configuration pour servir l'application React si elle est buildée
+const reactDistPath = path.join(__dirname, "..", "..", "frontend", "dist");
+const reactIndexFile = path.join(reactDistPath, "index.html");
 
 if (fs.existsSync(reactIndexFile)) {
-  // Servir les ressources REACT
-  app.use(express.static(path.join(__dirname, "..", "..", "frontend", "dist")))
+  console.info("Dossier de build React détecté. Configuration pour servir l'application...");
+  // Servir les fichiers statiques React
+  app.use(express.static(reactDistPath));
 
-  // Rediriger toutes les requêtes vers le fichier index de REACT
+  // Rediriger toutes les routes vers le fichier index.html de React
   app.get("*", (req, res) => {
-    res.sendFile(reactIndexFile)
-  })
+    res.sendFile(reactIndexFile);
+  });
+} else {
+  console.info("Aucun build React détecté, les routes API resteront accessibles seules.");
 }
 
-// Prêt à être exporté
-module.exports = app
+// Démarrage du serveur
+const port = process.env.APP_PORT || 4242;
+app.listen(port, () => {
+  console.info(`✅ Serveur démarré sur http://localhost:${port}`);
+});
+
+// (Optionnel) Vous pouvez toujours exporter app si nécessaire ailleurs
+export default app;

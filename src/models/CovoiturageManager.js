@@ -1,4 +1,4 @@
-const AbstractManager = require("./AbstractManager")
+import AbstractManager from "./AbstractManager.js";
 
 class CovoiturageManager extends AbstractManager {
   constructor() {
@@ -103,4 +103,5 @@ JOIN
   }
 }
 
-module.exports = CovoiturageManager
+
+export default CovoiturageManager;

@@ -1,4 +1,4 @@
-const AbstractManager = require("./AbstractManager")
+import AbstractManager from "./AbstractManager.js";
 
 class ParticipationManager extends AbstractManager {
   constructor() {
@@ -127,4 +127,4 @@ class ParticipationManager extends AbstractManager {
   }
 }
 
-module.exports = ParticipationManager
+export default ParticipationManager;

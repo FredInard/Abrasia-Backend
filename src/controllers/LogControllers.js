@@ -1,6 +1,8 @@
 // controllers/LogControllers.js
 
-const models = require("../models")
+
+import models from "../models/index.js"; // Adapter selon votre structure de projet
+
 
 class LogControllers {
   // GET /logs
@@ -72,4 +74,4 @@ class LogControllers {
   }
 }
 
-module.exports = LogControllers
+export default LogControllers;

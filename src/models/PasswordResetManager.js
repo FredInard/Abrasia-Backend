@@ -1,4 +1,4 @@
-const AbstractManager = require("./AbstractManager")
+import AbstractManager from "./AbstractManager.js";
 
 class PasswordResetManager extends AbstractManager {
   constructor() {
@@ -26,4 +26,4 @@ class PasswordResetManager extends AbstractManager {
   }
 }
 
-module.exports = PasswordResetManager
+export default PasswordResetManager;
