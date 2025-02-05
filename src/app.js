@@ -57,11 +57,7 @@ if (fs.existsSync(reactIndexFile)) {
   console.info("Aucun build React détecté, les routes API resteront accessibles seules.");
 }
 
-// Démarrage du serveur
-const port = process.env.APP_PORT || 4242;
-app.listen(port, () => {
-  console.info(`✅ Serveur démarré sur http://localhost:${port}`);
-});
+console.info("Application Express configurée avec succès.");
 
-// (Optionnel) Vous pouvez toujours exporter app si nécessaire ailleurs
+// On n'appelle plus app.listen(...) ici : on exporte simplement 'app'
 export default app;

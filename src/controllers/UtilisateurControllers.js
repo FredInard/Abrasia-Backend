@@ -111,34 +111,47 @@ class UtilisateurControllers {
   }
 
   // POST /login
-  static verifyUtilisateur(req, res, next) {
-    const { email } = req.body;
+  // POST /login
+static verifyUtilisateur(req, res, next) {
+  const { email } = req.body;
+  console.info("🔎 [AUTH] Vérification de l'utilisateur pour :", email);
 
-    models.utilisateur
-      .findByEmailWithPassword(email)
-      .then(([utilisateurs]) => {
-        const utilisateur = utilisateurs[0];
+  models.utilisateur
+    .findByEmailWithPassword(email)
+    .then(([utilisateurs]) => {
+      const utilisateur = utilisateurs[0];
 
-        if (!utilisateur) {
-          return res.status(401).json({ error: "Utilisateur non trouvé." });
-        }
+      if (!utilisateur) {
+        console.warn("⚠️ [AUTH] Utilisateur non trouvé :", email);
+        return res.status(401).json({ error: "Utilisateur non trouvé." });
+      }
 
-        // Vérifier si le rôle est "inactif"
-        if (utilisateur.role === "inactif") {
-          return res.status(403).json({
-            error:
-              "Ce compte est désactivé. Veuillez contacter un administrateur.",
-          });
-        }
+      // Vérifier si le rôle est "inactif"
+      if (utilisateur.role === "inactif") {
+        console.warn(
+          "⛔ [AUTH] Connexion refusée : compte inactif.",
+          email
+        );
+        return res.status(403).json({
+          error: "Ce compte est désactivé. Veuillez contacter un administrateur.",
+        });
+      }
 
-        req.utilisateur = utilisateur;
-        next();
-      })
-      .catch((err) => {
-        console.error(err);
-        res.status(500).json({ error: "Erreur interne du serveur." });
+      console.info("✅ [AUTH] Utilisateur autorisé :", {
+        id: utilisateur.id,
+        email: utilisateur.email,
+        role: utilisateur.role,
       });
-  }
+
+      req.utilisateur = utilisateur;
+      next();
+    })
+    .catch((err) => {
+      console.error("❌ [AUTH] Erreur lors de la vérification de l'utilisateur :", err);
+      res.status(500).json({ error: "Erreur interne du serveur." });
+    });
+}
+
 
   // PUT /utilisateurs/:id/anonymize
   static anonymize(req, res) {

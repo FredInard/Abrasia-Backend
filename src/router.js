@@ -1,12 +1,10 @@
-// routeur.js
+// router.js
 
 import express from "express";
 import multer from "multer";
 import path from "path";
 
-// Importez vos contrôleurs en ESM :
-// (Assurez-vous qu'ils sont également convertis en ESM, ou qu'ils exposent bien un export par défaut 
-// si vous les importez ainsi.)
+// Import des contrôleurs et des middlewares
 import PasswordResetController from "./controllers/PasswordResetController.js";
 import { hashPassword, verifyPassword, verifyToken } from "./auth.js";
 import UtilisateurControllers from "./controllers/UtilisateurControllers.js";
@@ -17,9 +15,22 @@ import CovoiturageControllers from "./controllers/CovoiturageControllers.js";
 import LogControllers from "./controllers/LogControllers.js";
 import ExportController from "./controllers/ExportController.js";
 
+
 const router = express.Router();
 
-// Configure multer for file upload
+// ✅ Vérification des imports pour éviter les erreurs "undefined"
+console.info("📌 Vérification des contrôleurs :");
+console.info("UtilisateurControllers :", UtilisateurControllers);
+console.info("PartieControllers :", PartieControllers);
+console.info("ParticipationControllers :", ParticipationControllers);
+console.info("RepasControllers :", RepasControllers);
+console.info("CovoiturageControllers :", CovoiturageControllers);
+console.info("LogControllers :", LogControllers);
+console.info("ExportController :", ExportController);
+
+// ------------------------------
+// 🖼️ Configuration de Multer pour l'upload d'images
+// ------------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "public/assets/uploads");
@@ -33,58 +44,57 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    // Accept images only
-    if (!file.originalname.match(/\.(jpg|JPG|jpeg|JPEG|png|PNG|gif|GIF)$/)) {
-      req.fileValidationError = "Only image files are allowed!";
-      return cb(new Error("Only image files are allowed!"), false);
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
+      req.fileValidationError = "Seules les images sont autorisées !";
+      return cb(new Error("Seules les images sont autorisées !"), false);
     }
     cb(null, true);
   },
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max-size
+    fileSize: 5 * 1024 * 1024, // 5MB max
   },
 });
 
+router.post("/login", async (req, res, next) => {
+  console.info("🔍 [LOGIN] Requête reçue:", {
+    email: req.body.email,
+    timestamp: new Date().toISOString(),
+  });
+
+  try {
+    await UtilisateurControllers.verifyUtilisateur(req, res, async () => {
+      console.info("✅ [LOGIN] Utilisateur trouvé en BDD:", {
+        id: req.utilisateur?.id,
+        email: req.utilisateur?.email,
+        role: req.utilisateur?.role,
+      });
+
+      await verifyPassword(req, res);
+    });
+  } catch (error) {
+    console.error("❌ [LOGIN] Erreur lors de la connexion :", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
+  }
+});
+
+
 // ------------------------------
-// Routes pour les utilisateurs
+// 🧑‍💻 Routes Utilisateurs
 // ------------------------------
-router.post("/login", UtilisateurControllers.verifyUtilisateur, verifyPassword);
+// router.post("/login", UtilisateurControllers.verifyUtilisateur, verifyPassword);
 router.post("/utilisateurs", hashPassword, UtilisateurControllers.add);
 router.get("/utilisateurs", UtilisateurControllers.browse);
 router.get("/utilisateurs/:id", verifyToken, UtilisateurControllers.read);
-router.put(
-  "/utilisateurs/:id",
-  verifyToken,
-  upload.single("photo_profil"),
-  UtilisateurControllers.edit
-);
+router.put("/utilisateurs/:id", verifyToken, upload.single("photo_profil"), UtilisateurControllers.edit);
 router.delete("/utilisateurs/:id", verifyToken, UtilisateurControllers.destroy);
 
-// Route pour changer le mot de passe de l'utilisateur
-router.put(
-  "/utilisateurs/:id/changerMotDePasse",
-  verifyToken,
-  hashPassword,
-  UtilisateurControllers.changerMotDePasse
-);
-
-// Route pour mettre à jour la photo de profil de l'utilisateur
-router.put(
-  "/utilisateurs/:id/upload",
-  verifyToken,
-  upload.single("photo_profil"),
-  UtilisateurControllers.updatePhotoProfil
-);
-
-// Anonymiser toutes les infos sauf l'ID et la date d'inscription
-router.put(
-  "/utilisateurs/:id/anonymize",
-  verifyToken, // si vous souhaitez protéger la route
-  UtilisateurControllers.anonymize
-);
+// 🔐 Gestion de la sécurité utilisateur
+router.put("/utilisateurs/:id/changerMotDePasse", verifyToken, hashPassword, UtilisateurControllers.changerMotDePasse);
+router.put("/utilisateurs/:id/upload", verifyToken, upload.single("photo_profil"), UtilisateurControllers.updatePhotoProfil);
+router.put("/utilisateurs/:id/anonymize", verifyToken, UtilisateurControllers.anonymize);
 
 // ------------------------------
-// Routes pour les parties
+// 🎲 Routes Parties
 // ------------------------------
 router.get("/parties/affichage", PartieControllers.affichageInfoPartie);
 router.get("/parties/player/:id", PartieControllers.getPartieByUtilisateurId);
@@ -94,33 +104,19 @@ router.put("/parties/:id", verifyToken, upload.single("photo_scenario"), PartieC
 router.delete("/parties/:id", verifyToken, PartieControllers.deleteByPartyId);
 
 // ------------------------------
-// Routes pour les participations
+// 🙋 Routes Participations
 // ------------------------------
 router.get("/participations", ParticipationControllers.browse);
-router.get(
-  "/participations/:id",
-  ParticipationControllers.getparticipationsByPartyId
-);
-router.get(
-  "/participations/:idPartie/:idPlayer",
-  ParticipationControllers.getparticipationsByPartyIdAndPlayerId
-);
+router.get("/participations/:id", ParticipationControllers.getparticipationsByPartyId);
+router.get("/participations/:idPartie/:idPlayer", ParticipationControllers.getparticipationsByPartyIdAndPlayerId);
 router.post("/participations", verifyToken, ParticipationControllers.add);
-router.post(
-  "/participations/:idPartie/:idPlayer",
-  verifyToken,
-  ParticipationControllers.addByPartiId
-);
+router.post("/participations/:idPartie/:idPlayer", verifyToken, ParticipationControllers.addByPartiId);
 router.put("/participations/:id", verifyToken, ParticipationControllers.edit);
-router.delete(
-  "/participations/:idPartie/:idPlayer",
-  verifyToken,
-  ParticipationControllers.deleteParticipationsByPartyIdAndPlayerId
-);
+router.delete("/participations/:idPartie/:idPlayer", verifyToken, ParticipationControllers.deleteParticipationsByPartyIdAndPlayerId);
 router.delete("/participations/:id", verifyToken, ParticipationControllers.destroy);
 
 // ------------------------------
-// Routes pour les repas
+// 🍽️ Routes Repas
 // ------------------------------
 router.get("/repas", RepasControllers.browse);
 router.get("/repas/:id", RepasControllers.getRepasByPartyId);
@@ -129,7 +125,7 @@ router.put("/repas/:id", verifyToken, RepasControllers.edit);
 router.delete("/repas/:id", verifyToken, RepasControllers.destroy);
 
 // ------------------------------
-// Routes pour les covoiturages
+// 🚗 Routes Covoiturages
 // ------------------------------
 router.get("/covoiturages", CovoiturageControllers.browse);
 router.get("/covoiturages/:id", CovoiturageControllers.getCovoiturageByPartyId);
@@ -138,21 +134,26 @@ router.put("/covoiturages/:id", verifyToken, CovoiturageControllers.edit);
 router.delete("/covoiturages/:id", verifyToken, CovoiturageControllers.destroy);
 
 // ------------------------------
-// Routes pour les logs
+// 📜 Routes Logs
 // ------------------------------
 router.get("/logs", verifyToken, LogControllers.browse);
 router.get("/logs/:id", verifyToken, LogControllers.read);
 
 // ------------------------------
-// Routes pour l'export
+// 📤 Route Exportation
 // ------------------------------
 router.get("/export/all", ExportController.exportAllTables);
 
 // ------------------------------
-// Routes pour la réinitialisation de mot de passe
+// 🔑 Routes Réinitialisation Mot de Passe
 // ------------------------------
 router.post("/password-reset-request", PasswordResetController.requestReset);
 router.post("/password-reset-confirm", PasswordResetController.confirmReset);
 
-// Export par défaut du router en ESM
+// 🔥 Middleware Global : Capture d’erreurs 404
+router.use((req, res) => {
+  res.status(404).json({ error: "Route non trouvée" });
+});
+
+// 📤 Export du router en mode ESM
 export default router;

@@ -143,14 +143,26 @@ class UtilisateurManager extends AbstractManager {
   }
 
   // Trouver un utilisateur par email avec le mot de passe
-  findByEmailWithPassword(email) {
-    return this.database.query(
-      `SELECT id, email, hashedPassword, role, pseudo, photo_profil
-       FROM ${this.table}
-       WHERE email = ?`,
-      [email]
-    );
-  }
+  // Trouver un utilisateur par email avec le mot de passe
+findByEmailWithPassword(email) {
+  console.info("🛠️ [DB] Requête pour trouver l'utilisateur :", email);
+
+  return this.database.query(
+    `SELECT id, email, hashedPassword, role, pseudo, photo_profil
+     FROM ${this.table}
+     WHERE email = ?`,
+    [email]
+  )
+  .then(([rows]) => {
+    console.info("✅ [DB] Utilisateur trouvé dans la base :", rows.length > 0 ? rows[0] : "Aucun utilisateur");
+    return [rows];
+  })
+  .catch((err) => {
+    console.error("❌ [DB] Erreur lors de la récupération de l'utilisateur :", err);
+    throw err;
+  });
+}
+
 
   // Mettre à jour le mot de passe
   updatePassword(id, hashedPassword) {
