@@ -8,10 +8,10 @@ class UtilisateurManager extends AbstractManager {
   }
 
   findByEmailOrPseudo(email, pseudo) {
-    return this.database.query(
-      `SELECT * FROM ${this.table} WHERE email = ? OR pseudo = ?`,
-      [email, pseudo]
-    );
+    return this.database.query(`SELECT * FROM ${this.table} WHERE email = ? OR pseudo = ?`, [
+      email,
+      pseudo,
+    ]);
   }
 
   // Anonymise toutes les infos (sauf id, date_inscription)
@@ -34,7 +34,7 @@ class UtilisateurManager extends AbstractManager {
          date_inscription = date_inscription,
          dernier_login = NULL
        WHERE id = ?`,
-      [id]
+      [id],
     );
   }
 
@@ -72,7 +72,7 @@ class UtilisateurManager extends AbstractManager {
         utilisateur.photo_profil,
         utilisateur.cgu_accepted ? 1 : 0,
         utilisateur.cookies_accepted ? 1 : 0,
-      ]
+      ],
     );
   }
 
@@ -107,7 +107,7 @@ class UtilisateurManager extends AbstractManager {
         utilisateur.bio,
         utilisateur.photo_profil || null,
         utilisateur.id,
-      ]
+      ],
     );
   }
 
@@ -115,7 +115,7 @@ class UtilisateurManager extends AbstractManager {
   findAll() {
     return this.database.query(
       `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login
-       FROM ${this.table}`
+       FROM ${this.table}`,
     );
   }
 
@@ -125,7 +125,7 @@ class UtilisateurManager extends AbstractManager {
       `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login
        FROM ${this.table}
        WHERE id = ?`,
-      [id]
+      [id],
     );
   }
 
@@ -136,48 +136,48 @@ class UtilisateurManager extends AbstractManager {
 
   // Trouver un utilisateur par pseudo
   findByPseudo(pseudo) {
-    return this.database.query(
-      `SELECT id, pseudo FROM ${this.table} WHERE pseudo = ?`,
-      [pseudo]
-    );
+    return this.database.query(`SELECT id, pseudo FROM ${this.table} WHERE pseudo = ?`, [pseudo]);
   }
 
   // Trouver un utilisateur par email avec le mot de passe
   // Trouver un utilisateur par email avec le mot de passe
-findByEmailWithPassword(email) {
-  console.info("🛠️ [DB] Requête pour trouver l'utilisateur :", email);
+  findByEmailWithPassword(email) {
+    console.info("🛠️ [DB] Requête pour trouver l'utilisateur :", email);
 
-  return this.database.query(
-    `SELECT id, email, hashedPassword, role, pseudo, photo_profil
+    return this.database
+      .query(
+        `SELECT id, email, hashedPassword, role, pseudo, photo_profil
      FROM ${this.table}
      WHERE email = ?`,
-    [email]
-  )
-  .then(([rows]) => {
-    console.info("✅ [DB] Utilisateur trouvé dans la base :", rows.length > 0 ? rows[0] : "Aucun utilisateur");
-    return [rows];
-  })
-  .catch((err) => {
-    console.error("❌ [DB] Erreur lors de la récupération de l'utilisateur :", err);
-    throw err;
-  });
-}
-
+        [email],
+      )
+      .then(([rows]) => {
+        console.info(
+          "✅ [DB] Utilisateur trouvé dans la base :",
+          rows.length > 0 ? rows[0] : "Aucun utilisateur",
+        );
+        return [rows];
+      })
+      .catch((err) => {
+        console.error("❌ [DB] Erreur lors de la récupération de l'utilisateur :", err);
+        throw err;
+      });
+  }
 
   // Mettre à jour le mot de passe
   updatePassword(id, hashedPassword) {
-    return this.database.query(
-      `UPDATE ${this.table} SET hashedPassword = ? WHERE id = ?`,
-      [hashedPassword, id]
-    );
+    return this.database.query(`UPDATE ${this.table} SET hashedPassword = ? WHERE id = ?`, [
+      hashedPassword,
+      id,
+    ]);
   }
 
   // Mettre à jour la photo de profil
   updatePhotoProfil(id, photoProfil) {
-    return this.database.query(
-      `UPDATE ${this.table} SET photo_profil = ? WHERE id = ?`,
-      [photoProfil, id]
-    );
+    return this.database.query(`UPDATE ${this.table} SET photo_profil = ? WHERE id = ?`, [
+      photoProfil,
+      id,
+    ]);
   }
 
   // Récupérer le profil d'un utilisateur par ID (sans le mot de passe)
@@ -186,15 +186,13 @@ findByEmailWithPassword(email) {
       `SELECT id, nom, prenom, email, pseudo, role, date_naissance, adresse, ville, telephone, bio, photo_profil, date_inscription, dernier_login
        FROM ${this.table}
        WHERE id = ?`,
-      [id]
+      [id],
     );
   }
 
   // Recherche d'un utilisateur par email
   findByEmail(email) {
-    return this.database.query(`SELECT * FROM ${this.table} WHERE email = ?`, [
-      email,
-    ]);
+    return this.database.query(`SELECT * FROM ${this.table} WHERE email = ?`, [email]);
   }
 }
 

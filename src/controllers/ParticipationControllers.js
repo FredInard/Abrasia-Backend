@@ -42,10 +42,7 @@ class ParticipationControllers {
     models.participation
       .findParticipationsByPartyId(id)
       .then(([rows]) => {
-        console.info(
-          "Participants trouvés dans la base de données :",
-          rows
-        );
+        console.info("Participants trouvés dans la base de données :", rows);
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -65,9 +62,7 @@ class ParticipationControllers {
     });
 
     if (!partyId || !userId) {
-      return res
-        .status(400)
-        .json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
+      return res.status(400).json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
     }
 
     models.participation
@@ -82,10 +77,7 @@ class ParticipationControllers {
         }
       })
       .catch((err) => {
-        console.error(
-          "Erreur lors de la vérification de la participation :",
-          err
-        );
+        console.error("Erreur lors de la vérification de la participation :", err);
         res.status(500).json({
           error: "Erreur serveur lors de la vérification de la participation.",
         });
@@ -125,44 +117,30 @@ class ParticipationControllers {
         partyId,
         userId,
       });
-      return res
-        .status(400)
-        .json({
-          error: "L'ID de la partie et de l'utilisateur sont requis.",
-        });
+      return res.status(400).json({
+        error: "L'ID de la partie et de l'utilisateur sont requis.",
+      });
     }
 
     // Vérifie si l'utilisateur est déjà inscrit
     models.participation
       .findByPartyAndUserId(partyId, userId)
       .then(([existingParticipant]) => {
-        console.info(
-          "Vérification de l'existence de la participation :",
-          existingParticipant
-        );
+        console.info("Vérification de l'existence de la participation :", existingParticipant);
 
         if (existingParticipant.length > 0) {
           console.info("Utilisateur déjà inscrit à cette partie :", {
             partyId,
             userId,
           });
-          return res
-            .status(409)
-            .json({ error: "L'utilisateur est déjà inscrit à cette partie." });
+          return res.status(409).json({ error: "L'utilisateur est déjà inscrit à cette partie." });
         }
 
         // Ajoute l'utilisateur à la participation
-        return models.participation
-          .addParticipantToParty(partyId, userId)
-          .then(() => {
-            console.info(
-              "Utilisateur ajouté à la participation avec succès :",
-              { partyId, userId }
-            );
-            res
-              .status(201)
-              .json({ message: "Utilisateur ajouté à la partie avec succès." });
-          });
+        return models.participation.addParticipantToParty(partyId, userId).then(() => {
+          console.info("Utilisateur ajouté à la participation avec succès :", { partyId, userId });
+          res.status(201).json({ message: "Utilisateur ajouté à la partie avec succès." });
+        });
       })
       .catch((err) => {
         console.error("Erreur lors de l'ajout de la participation :", err);
@@ -177,15 +155,13 @@ class ParticipationControllers {
     const partyId = parseInt(req.params.idPartie, 10);
     const userId = parseInt(req.params.idPlayer, 10);
 
-    console.info(
-      "Suppression de la participation, covoiturages et repas pour l'utilisateur :",
-      { partyId, userId }
-    );
+    console.info("Suppression de la participation, covoiturages et repas pour l'utilisateur :", {
+      partyId,
+      userId,
+    });
 
     if (!partyId || !userId) {
-      return res
-        .status(400)
-        .json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
+      return res.status(400).json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
     }
 
     // Suppression des covoiturages, repas, et participation
@@ -196,15 +172,12 @@ class ParticipationControllers {
     ])
       .then(([covoiturageResult, repasResult, participationResult]) => {
         if (participationResult.affectedRows === 0) {
-          console.info(
-            "Aucune participation trouvée pour l'utilisateur dans la partie :",
-            partyId
-          );
+          console.info("Aucune participation trouvée pour l'utilisateur dans la partie :", partyId);
           return res.status(404).json({ message: "Participation non trouvée." });
         } else {
           console.info(
             "Participation, covoiturages et repas supprimés pour l'utilisateur dans la partie :",
-            partyId
+            partyId,
           );
           return res.status(204).send();
         }
@@ -212,11 +185,9 @@ class ParticipationControllers {
       .catch((err) => {
         console.error(
           "Erreur lors de la suppression des données de l'utilisateur dans la partie :",
-          err
+          err,
         );
-        res
-          .status(500)
-          .json({ error: "Erreur serveur lors de la suppression des données." });
+        res.status(500).json({ error: "Erreur serveur lors de la suppression des données." });
       });
   }
 
@@ -271,7 +242,7 @@ class ParticipationControllers {
       .then(([result]) => {
         if (result.affectedRows === 0) {
           console.info(
-            "Une erreur s'est produite lors de la tentative de suppression de la participation"
+            "Une erreur s'est produite lors de la tentative de suppression de la participation",
           );
           res.sendStatus(404);
         } else {

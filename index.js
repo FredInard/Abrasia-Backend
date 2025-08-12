@@ -12,7 +12,7 @@ const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 async function testDBConnection() {
   try {
     console.info("🔄 Tentative de connexion à la base de données...");
-    
+
     const connection = await mysql.createConnection({
       host: DB_HOST,
       port: DB_PORT,

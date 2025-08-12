@@ -68,9 +68,7 @@ class PartieControllers {
 
       if (req.file) {
         const filePath = req.file.path.replace(/\\/g, "/");
-        partie.photo_scenario = filePath.startsWith("public")
-          ? filePath
-          : `public/${filePath}`;
+        partie.photo_scenario = filePath.startsWith("public") ? filePath : `public/${filePath}`;
       } else {
         partie.photo_scenario = "public/assets/images/profilPictures/dragonBook.webp";
       }
@@ -159,15 +157,10 @@ class PartieControllers {
         await axios.post(process.env.DISCORD_WEBHOOK_URL, discordMessage);
         console.info("Message envoyé à Discord avec succès.");
       } catch (discordError) {
-        console.error(
-          "Erreur lors de l'envoi du message à Discord :",
-          discordError.message
-        );
+        console.error("Erreur lors de l'envoi du message à Discord :", discordError.message);
       }
 
-      return res
-        .status(200)
-        .json({ message: "Partie mise à jour avec succès.", partie });
+      return res.status(200).json({ message: "Partie mise à jour avec succès.", partie });
     } catch (err) {
       console.error("Erreur lors de la mise à jour de la partie :", err.message);
       return res.status(500).json({ error: "Erreur serveur lors de la mise à jour." });
