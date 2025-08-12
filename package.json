@@ -2,12 +2,13 @@
   "name": "abrasia-back",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee",
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
     "migrate": "node migrate.js",
     "start": "node index.js",
-    "lint": "echo '----- Checking Backend...' && npx prettier --debug-check . && eslint --ext .js . && echo '----- Done!'",
+    "lint": "echo '----- Checking Backend...' && prettier --check . && eslint --ext .js . && echo '----- Done!'",
     "fix": "prettier --write . && eslint --fix --ext .js ."
   },
   "dependencies": {

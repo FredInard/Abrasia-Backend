@@ -15,7 +15,6 @@ import CovoiturageControllers from "./controllers/CovoiturageControllers.js";
 import LogControllers from "./controllers/LogControllers.js";
 import ExportController from "./controllers/ExportController.js";
 
-
 const router = express.Router();
 
 // ✅ Vérification des imports pour éviter les erreurs "undefined"
@@ -77,7 +76,6 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
-
 // ------------------------------
 // 🧑‍💻 Routes Utilisateurs
 // ------------------------------
@@ -85,12 +83,27 @@ router.post("/login", async (req, res, next) => {
 router.post("/utilisateurs", hashPassword, UtilisateurControllers.add);
 router.get("/utilisateurs", UtilisateurControllers.browse);
 router.get("/utilisateurs/:id", verifyToken, UtilisateurControllers.read);
-router.put("/utilisateurs/:id", verifyToken, upload.single("photo_profil"), UtilisateurControllers.edit);
+router.put(
+  "/utilisateurs/:id",
+  verifyToken,
+  upload.single("photo_profil"),
+  UtilisateurControllers.edit,
+);
 router.delete("/utilisateurs/:id", verifyToken, UtilisateurControllers.destroy);
 
 // 🔐 Gestion de la sécurité utilisateur
-router.put("/utilisateurs/:id/changerMotDePasse", verifyToken, hashPassword, UtilisateurControllers.changerMotDePasse);
-router.put("/utilisateurs/:id/upload", verifyToken, upload.single("photo_profil"), UtilisateurControllers.updatePhotoProfil);
+router.put(
+  "/utilisateurs/:id/changerMotDePasse",
+  verifyToken,
+  hashPassword,
+  UtilisateurControllers.changerMotDePasse,
+);
+router.put(
+  "/utilisateurs/:id/upload",
+  verifyToken,
+  upload.single("photo_profil"),
+  UtilisateurControllers.updatePhotoProfil,
+);
 router.put("/utilisateurs/:id/anonymize", verifyToken, UtilisateurControllers.anonymize);
 
 // ------------------------------
@@ -108,11 +121,22 @@ router.delete("/parties/:id", verifyToken, PartieControllers.deleteByPartyId);
 // ------------------------------
 router.get("/participations", ParticipationControllers.browse);
 router.get("/participations/:id", ParticipationControllers.getparticipationsByPartyId);
-router.get("/participations/:idPartie/:idPlayer", ParticipationControllers.getparticipationsByPartyIdAndPlayerId);
+router.get(
+  "/participations/:idPartie/:idPlayer",
+  ParticipationControllers.getparticipationsByPartyIdAndPlayerId,
+);
 router.post("/participations", verifyToken, ParticipationControllers.add);
-router.post("/participations/:idPartie/:idPlayer", verifyToken, ParticipationControllers.addByPartiId);
+router.post(
+  "/participations/:idPartie/:idPlayer",
+  verifyToken,
+  ParticipationControllers.addByPartiId,
+);
 router.put("/participations/:id", verifyToken, ParticipationControllers.edit);
-router.delete("/participations/:idPartie/:idPlayer", verifyToken, ParticipationControllers.deleteParticipationsByPartyIdAndPlayerId);
+router.delete(
+  "/participations/:idPartie/:idPlayer",
+  verifyToken,
+  ParticipationControllers.deleteParticipationsByPartyIdAndPlayerId,
+);
 router.delete("/participations/:id", verifyToken, ParticipationControllers.destroy);
 
 // ------------------------------

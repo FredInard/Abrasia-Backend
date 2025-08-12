@@ -93,7 +93,9 @@ export const requireAdmin = (req, res, next) => {
 // ✅ Middleware pour restreindre l'accès aux utilisateurs actifs uniquement
 export const requireActiveUser = (req, res, next) => {
   if (req.utilisateur?.role === "inactif") {
-    return res.status(403).json({ error: "Votre compte est désactivé. Contactez un administrateur." });
+    return res
+      .status(403)
+      .json({ error: "Votre compte est désactivé. Contactez un administrateur." });
   }
   next();
 };

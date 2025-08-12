@@ -2,23 +2,23 @@ import AbstractManager from "./AbstractManager.js";
 
 class RepasManager extends AbstractManager {
   constructor() {
-    super({ table: "repas" })
+    super({ table: "repas" });
   }
 
   // Insérer un nouveau repas
   insert(repas) {
     return this.database.query(
       `INSERT INTO ${this.table} (utilisateur_id, partie_id, contenu) VALUES (?, ?, ?)`,
-      [repas.utilisateur_id, repas.partie_id, repas.contenu]
-    )
+      [repas.utilisateur_id, repas.partie_id, repas.contenu],
+    );
   }
 
   // Mettre à jour un repas existant
   update(repas) {
     return this.database.query(
       `UPDATE ${this.table} SET utilisateur_id = ?, partie_id = ?, contenu = ? WHERE id = ?`,
-      [repas.utilisateur_id, repas.partie_id, repas.contenu, repas.id]
-    )
+      [repas.utilisateur_id, repas.partie_id, repas.contenu, repas.id],
+    );
   }
 
   // Récupérer tous les repas avec les informations utilisateur et partie
@@ -34,7 +34,7 @@ class RepasManager extends AbstractManager {
     FROM repas
     JOIN utilisateur ON repas.utilisateur_id = utilisateur.id
     JOIN partie ON repas.partie_id = partie.id
-  `)
+  `);
   }
 
   // Récupérer tous les repas pour une partie spécifique par son ID avec le pseudo de l'utilisateur
@@ -44,41 +44,36 @@ class RepasManager extends AbstractManager {
      FROM ${this.table} AS repas 
      JOIN utilisateur ON repas.utilisateur_id = utilisateur.id 
      WHERE repas.partie_id = ?`, // Utilisation de 'partie_id' conformément à la table
-      [partyId]
-    )
+      [partyId],
+    );
   }
 
   // Supprimer les repas par utilisateur_id
   deleteByUtilisateurId(utilisateurId) {
-    return this.database.query(
-      `DELETE FROM ${this.table} WHERE utilisateur_id = ?`,
-      [utilisateurId]
-    )
+    return this.database.query(`DELETE FROM ${this.table} WHERE utilisateur_id = ?`, [
+      utilisateurId,
+    ]);
   }
 
   // Récupérer un repas par ID
   find(id) {
-    return this.database.query(`SELECT * FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.query(`SELECT * FROM ${this.table} WHERE id = ?`, [id]);
   }
 
   deleteByPartyAndUserId(partyId, userId) {
-    return this.database.query(
-      `DELETE FROM repas WHERE partie_id = ? AND utilisateur_id = ?`,
-      [partyId, userId]
-    )
+    return this.database.query(`DELETE FROM repas WHERE partie_id = ? AND utilisateur_id = ?`, [
+      partyId,
+      userId,
+    ]);
   }
 
   // Supprimer un repas par ID
   delete(id) {
-    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id]);
   }
 
   deleteByPartyId(partyId) {
-    return this.database.query(
-      `DELETE FROM ${this.table} WHERE partie_id = ?`,
-      [partyId]
-    )
+    return this.database.query(`DELETE FROM ${this.table} WHERE partie_id = ?`, [partyId]);
   }
 }
 export default RepasManager;
-

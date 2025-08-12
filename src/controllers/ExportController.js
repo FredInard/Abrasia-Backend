@@ -7,11 +7,11 @@ class ExportController {
   static exportAllTables(req, res) {
     // Récupérer les données des différentes tables
     Promise.all([
-      models.utilisateur.findAll(),    // Récupère les utilisateurs
-      models.partie.findAll(),         // Récupère les parties
-      models.participation.findAll(),  // Récupère les participations
-      models.repas.findAll(),          // Récupère les repas
-      models.covoiturage.findAll(),    // Récupère les covoiturages
+      models.utilisateur.findAll(), // Récupère les utilisateurs
+      models.partie.findAll(), // Récupère les parties
+      models.participation.findAll(), // Récupère les participations
+      models.repas.findAll(), // Récupère les repas
+      models.covoiturage.findAll(), // Récupère les covoiturages
     ])
       .then((results) => {
         const [utilisateurs, parties, participations, repas, covoiturages] = results;
@@ -40,13 +40,10 @@ class ExportController {
         });
 
         // Définir les en-têtes pour le téléchargement
-        res.setHeader(
-          "Content-Disposition",
-          'attachment; filename="export_all_tables.xlsx"'
-        );
+        res.setHeader("Content-Disposition", 'attachment; filename="export_all_tables.xlsx"');
         res.setHeader(
           "Content-Type",
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         );
 
         // Envoyer le fichier Excel au client

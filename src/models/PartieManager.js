@@ -2,7 +2,7 @@ import AbstractManager from "./AbstractManager.js";
 
 class PartieManager extends AbstractManager {
   constructor() {
-    super({ table: "partie" })
+    super({ table: "partie" });
   }
 
   // Insert a new partie
@@ -30,11 +30,9 @@ class PartieManager extends AbstractManager {
         partie.duree_estimee,
         partie.lieu,
         partie.photo_scenario,
-        partie.strict_nb_joueurs === "1" || partie.strict_nb_joueurs === true
-          ? 1
-          : 0,
-      ]
-    )
+        partie.strict_nb_joueurs === "1" || partie.strict_nb_joueurs === true ? 1 : 0,
+      ],
+    );
   }
 
   // Update an existing partie
@@ -65,21 +63,20 @@ class PartieManager extends AbstractManager {
         partie.photo_scenario,
         partie.strict_nb_joueurs === "1" ? 1 : 0,
         partie.id,
-      ]
-    )
+      ],
+    );
   }
 
   // Supprimer les parties par id_maitre_du_jeu
   deleteByMaitreDuJeuId(maitreDuJeuId) {
-    return this.database.query(
-      `DELETE FROM ${this.table} WHERE id_maitre_du_jeu = ?`,
-      [maitreDuJeuId]
-    )
+    return this.database.query(`DELETE FROM ${this.table} WHERE id_maitre_du_jeu = ?`, [
+      maitreDuJeuId,
+    ]);
   }
 
   // Find all parties
   findAll() {
-    return this.database.query(`SELECT * FROM ${this.table}`)
+    return this.database.query(`SELECT * FROM ${this.table}`);
   }
 
   // Find a partie by ID, including the pseudo and photo_profil of the maître du jeu
@@ -91,8 +88,8 @@ class PartieManager extends AbstractManager {
     LEFT JOIN utilisateur AS u ON p.id_maitre_du_jeu = u.id
     WHERE p.id = ?
     `,
-      [id]
-    )
+      [id],
+    );
   }
 
   // Get detailed info of all parties
@@ -117,7 +114,7 @@ FROM
 JOIN 
     utilisateur ON partie.id_maitre_du_jeu = utilisateur.id;
     
-      `)
+      `);
   }
 
   // Get detailed info of parties on a specific date
@@ -141,8 +138,8 @@ JOIN
       LEFT JOIN utilisateur u ON p.id_maitre_du_jeu = u.id
       WHERE DATE(p.date) = DATE(?);
       `,
-      [date]
-    )
+      [date],
+    );
   }
 
   // Find all parties by utilisateur ID
@@ -176,8 +173,8 @@ JOIN
       partie.id_maitre_du_jeu = ? 
       OR participation.utilisateur_id = ?
     `,
-      [id, id, id]
-    )
+      [id, id, id],
+    );
   }
 
   // Find participants of a partie by partie ID
@@ -192,8 +189,8 @@ JOIN
       JOIN participation pa ON u.id = pa.utilisateur_id
       WHERE pa.partie_id = ?;
       `,
-      [partieId]
-    )
+      [partieId],
+    );
   }
 
   // Find parties where the utilisateur is the maitre du jeu
@@ -219,8 +216,8 @@ JOIN
       WHERE p.id_maitre_du_jeu = ?
       GROUP BY p.id;
       `,
-      [utilisateurId]
-    )
+      [utilisateurId],
+    );
   }
 
   // Get the count of participants in a partie
@@ -232,8 +229,8 @@ JOIN
       WHERE partie_id = ?
       GROUP BY partie_id;
       `,
-      [partieId]
-    )
+      [partieId],
+    );
   }
 
   // Delete a partie and its related participations
@@ -242,12 +239,8 @@ JOIN
   // }
 
   deleteByPartyId(partyId) {
-    return this.database.query(
-      `DELETE FROM ${this.table} WHERE partie_id = ?`,
-      [partyId]
-    )
+    return this.database.query(`DELETE FROM ${this.table} WHERE partie_id = ?`, [partyId]);
   }
 }
-
 
 export default PartieManager;

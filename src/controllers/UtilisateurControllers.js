@@ -45,14 +45,13 @@ class UtilisateurControllers {
 
     // Valeur par défaut pour l'image de profil si non spécifiée
     utilisateur.photo_profil =
-      utilisateur.photo_profil ||
-      "public/assets/images/profilPictures/dragonBook.webp";
+      utilisateur.photo_profil || "public/assets/images/profilPictures/dragonBook.webp";
 
     try {
       // Vérification si l'email ou le pseudo existe déjà
       const [existingUsers] = await models.utilisateur.findByEmailOrPseudo(
         utilisateur.email,
-        utilisateur.pseudo
+        utilisateur.pseudo,
       );
 
       if (existingUsers.length > 0) {
@@ -112,46 +111,42 @@ class UtilisateurControllers {
 
   // POST /login
   // POST /login
-static verifyUtilisateur(req, res, next) {
-  const { email } = req.body;
-  console.info("🔎 [AUTH] Vérification de l'utilisateur pour :", email);
+  static verifyUtilisateur(req, res, next) {
+    const { email } = req.body;
+    console.info("🔎 [AUTH] Vérification de l'utilisateur pour :", email);
 
-  models.utilisateur
-    .findByEmailWithPassword(email)
-    .then(([utilisateurs]) => {
-      const utilisateur = utilisateurs[0];
+    models.utilisateur
+      .findByEmailWithPassword(email)
+      .then(([utilisateurs]) => {
+        const utilisateur = utilisateurs[0];
 
-      if (!utilisateur) {
-        console.warn("⚠️ [AUTH] Utilisateur non trouvé :", email);
-        return res.status(401).json({ error: "Utilisateur non trouvé." });
-      }
+        if (!utilisateur) {
+          console.warn("⚠️ [AUTH] Utilisateur non trouvé :", email);
+          return res.status(401).json({ error: "Utilisateur non trouvé." });
+        }
 
-      // Vérifier si le rôle est "inactif"
-      if (utilisateur.role === "inactif") {
-        console.warn(
-          "⛔ [AUTH] Connexion refusée : compte inactif.",
-          email
-        );
-        return res.status(403).json({
-          error: "Ce compte est désactivé. Veuillez contacter un administrateur.",
+        // Vérifier si le rôle est "inactif"
+        if (utilisateur.role === "inactif") {
+          console.warn("⛔ [AUTH] Connexion refusée : compte inactif.", email);
+          return res.status(403).json({
+            error: "Ce compte est désactivé. Veuillez contacter un administrateur.",
+          });
+        }
+
+        console.info("✅ [AUTH] Utilisateur autorisé :", {
+          id: utilisateur.id,
+          email: utilisateur.email,
+          role: utilisateur.role,
         });
-      }
 
-      console.info("✅ [AUTH] Utilisateur autorisé :", {
-        id: utilisateur.id,
-        email: utilisateur.email,
-        role: utilisateur.role,
+        req.utilisateur = utilisateur;
+        next();
+      })
+      .catch((err) => {
+        console.error("❌ [AUTH] Erreur lors de la vérification de l'utilisateur :", err);
+        res.status(500).json({ error: "Erreur interne du serveur." });
       });
-
-      req.utilisateur = utilisateur;
-      next();
-    })
-    .catch((err) => {
-      console.error("❌ [AUTH] Erreur lors de la vérification de l'utilisateur :", err);
-      res.status(500).json({ error: "Erreur interne du serveur." });
-    });
-}
-
+  }
 
   // PUT /utilisateurs/:id/anonymize
   static anonymize(req, res) {
@@ -189,10 +184,7 @@ static verifyUtilisateur(req, res, next) {
       });
     }
 
-    console.info(
-      "Tentative de mise à jour du mot de passe pour l'utilisateur ID :",
-      id
-    );
+    console.info("Tentative de mise à jour du mot de passe pour l'utilisateur ID :", id);
 
     models.utilisateur
       .updatePassword(id, hashedPassword)
@@ -203,10 +195,7 @@ static verifyUtilisateur(req, res, next) {
           console.warn("Utilisateur introuvable avec ID :", id);
           res.status(404).json({ error: "Utilisateur introuvable" });
         } else {
-          console.info(
-            "Mot de passe mis à jour avec succès pour l'utilisateur ID :",
-            id
-          );
+          console.info("Mot de passe mis à jour avec succès pour l'utilisateur ID :", id);
           res.sendStatus(204);
         }
       })
@@ -294,9 +283,7 @@ static verifyUtilisateur(req, res, next) {
   static destroy(req, res) {
     const id = parseInt(req.params.id, 10);
 
-    console.info(
-      `Suppression de l'utilisateur avec l'ID : ${id} et ses données associées`
-    );
+    console.info(`Suppression de l'utilisateur avec l'ID : ${id} et ses données associées`);
 
     // Supprimer les données associées via les managers
     const deletions = [

@@ -2,7 +2,7 @@ import AbstractManager from "./AbstractManager.js";
 
 class CovoiturageManager extends AbstractManager {
   constructor() {
-    super({ table: "covoiturage" })
+    super({ table: "covoiturage" });
   }
 
   // Insérer un nouveau covoiturage
@@ -16,8 +16,8 @@ class CovoiturageManager extends AbstractManager {
         covoiturage.ville_arrivee,
         covoiturage.heure_depart,
         covoiturage.propose_retour,
-      ]
-    )
+      ],
+    );
   }
 
   // Mettre à jour un covoiturage existant
@@ -32,8 +32,8 @@ class CovoiturageManager extends AbstractManager {
         covoiturage.heure_depart,
         covoiturage.propose_retour,
         covoiturage.id,
-      ]
-    )
+      ],
+    );
   }
 
   // Récupérer tous les covoiturages avec pseudo utilisateur et titre de partie
@@ -56,12 +56,12 @@ JOIN
 JOIN 
     partie ON covoiturage.partie_id = partie.id;
 
-  `)
+  `);
   }
 
   // Récupérer un covoiturage par ID
   find(id) {
-    return this.database.query(`SELECT * FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.query(`SELECT * FROM ${this.table} WHERE id = ?`, [id]);
   }
 
   // Récupérer les covoiturages pour une partie spécifique par son ID avec le pseudo de l'utilisateur
@@ -71,37 +71,32 @@ JOIN
      FROM ${this.table} AS covoiturage 
      JOIN utilisateur ON covoiturage.utilisateur_id = utilisateur.id 
      WHERE covoiturage.partie_id = ?`, // Correction ici
-      [partyId]
-    )
+      [partyId],
+    );
   }
 
   // Supprimer les covoiturages par utilisateur_id
   deleteByUtilisateurId(utilisateurId) {
-    return this.database.query(
-      `DELETE FROM ${this.table} WHERE utilisateur_id = ?`,
-      [utilisateurId]
-    )
+    return this.database.query(`DELETE FROM ${this.table} WHERE utilisateur_id = ?`, [
+      utilisateurId,
+    ]);
   }
 
   deleteByPartyAndUserId(partyId, userId) {
     return this.database.query(
       `DELETE FROM covoiturage WHERE partie_id = ? AND utilisateur_id = ?`,
-      [partyId, userId]
-    )
+      [partyId, userId],
+    );
   }
 
   // Supprimer un covoiturage par ID
   delete(id) {
-    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id]);
   }
 
   deleteByPartyId(partyId) {
-    return this.database.query(
-      `DELETE FROM ${this.table} WHERE partie_id = ?`,
-      [partyId]
-    )
+    return this.database.query(`DELETE FROM ${this.table} WHERE partie_id = ?`, [partyId]);
   }
 }
-
 
 export default CovoiturageManager;
