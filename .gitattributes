@@ -1,0 +1,14 @@
+* text=auto
+*.{js,jsx,ts,tsx,css,scss,md,json,yml,yaml,prisma} text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf  binary
+public/uploads/** binary
+public/profilPictures/** binary
+Abrasia-Backend/public/uploads/** binary
+Abrasia-Backend/public/profilPictures/** binary

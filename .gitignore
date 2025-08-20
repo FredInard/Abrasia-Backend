@@ -27,3 +27,6 @@ dist-ssr
 .env
 
 /src/generated/prisma
+public/uploads/
+public/profilPictures/
+package-lock.json
