@@ -18,7 +18,12 @@ export const hashPassword = async (req, res, next) => {
       return res.status(400).json({ error: "Un mot de passe valide est requis." });
     }
 
-    req.body.mot_de_passe = await argon2.hash(motDePasse, HASHING_OPTIONS);
+    // Harmonisation du champ attendu côté controllers/managers
+    // La BDD utilise la colonne `hashedpassword` (prisma), et les controllers lisent `hashedPassword` dans req.body
+    // On remplit donc `req.body.hashedPassword` ici (au lieu de `mot_de_passe`)
+    req.body.hashedPassword = await argon2.hash(motDePasse, HASHING_OPTIONS);
+    // Si d'autres parties du code lisent encore `mot_de_passe`, on peut conserver la compatibilité:
+    // req.body.mot_de_passe = req.body.hashedPassword;
     next();
   } catch (error) {
     console.error("❌ Erreur lors du hachage du mot de passe:", error);
@@ -30,7 +35,8 @@ export const hashPassword = async (req, res, next) => {
 export const verifyPassword = async (req, res) => {
   try {
     const { motDePasse } = req.body;
-    const { mot_de_passe: hashedPassword, id, role, pseudo, email } = req.utilisateur;
+    // Prisma renvoie le champ "hashedpassword" (snake/camel mix). On le mappe vers hashedPassword.
+    const { hashedpassword: hashedPassword, id, role, pseudo, email } = req.utilisateur;
 
     if (!motDePasse || typeof motDePasse !== "string") {
       return res.status(400).json({ error: "Le mot de passe est requis." });
@@ -43,7 +49,8 @@ export const verifyPassword = async (req, res) => {
     }
 
     // ✅ Génération du token JWT sécurisé
-    const token = jwt.sign({ sub: id, role, pseudo, email }, process.env.JWT_SECRET, {
+    // Inclure aussi `id` pour compatibilité avec le front qui lit decodedToken.id
+    const token = jwt.sign({ sub: id, id, role, pseudo, email }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRATION || "12h", // Configurable via .env
     });
 

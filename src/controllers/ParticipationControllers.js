@@ -7,7 +7,7 @@ class ParticipationControllers {
   static browse(req, res) {
     models.participation
       .findAll()
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -22,12 +22,9 @@ class ParticipationControllers {
 
     models.participation
       .find(id)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0]);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((row) => {
+        if (row) return res.status(200).json(row);
+        return res.sendStatus(404);
       })
       .catch((err) => {
         console.error(err);
@@ -41,7 +38,7 @@ class ParticipationControllers {
 
     models.participation
       .findParticipationsByPartyId(id)
-      .then(([rows]) => {
+      .then((rows) => {
         console.info("Participants trouvés dans la base de données :", rows);
         res.status(200).json(rows);
       })
@@ -62,13 +59,15 @@ class ParticipationControllers {
     });
 
     if (!partyId || !userId) {
-      return res.status(400).json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
+      return res
+        .status(400)
+        .json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
     }
 
     models.participation
       .findByPartyAndUserId(partyId, userId)
-      .then(([existingParticipant]) => {
-        if (existingParticipant.length > 0) {
+      .then((existingParticipant) => {
+        if (existingParticipant) {
           console.info("L'utilisateur est déjà inscrit à cette partie.");
           return res.status(200).json({ isJoined: true });
         } else {
@@ -77,7 +76,10 @@ class ParticipationControllers {
         }
       })
       .catch((err) => {
-        console.error("Erreur lors de la vérification de la participation :", err);
+        console.error(
+          "Erreur lors de la vérification de la participation :",
+          err
+        );
         res.status(500).json({
           error: "Erreur serveur lors de la vérification de la participation.",
         });
@@ -92,9 +94,9 @@ class ParticipationControllers {
 
     models.participation
       .insert(participation)
-      .then(([result]) => {
+      .then((created) => {
         console.info("Inscription à la partie réussie");
-        res.status(201).json({ id: result.insertId, ...participation });
+        res.status(201).json(created);
       })
       .catch((err) => {
         console.error(err);
@@ -117,30 +119,42 @@ class ParticipationControllers {
         partyId,
         userId,
       });
-      return res.status(400).json({
-        error: "L'ID de la partie et de l'utilisateur sont requis.",
-      });
+      return res
+        .status(400)
+        .json({
+          error: "L'ID de la partie et de l'utilisateur sont requis.",
+        });
     }
 
     // Vérifie si l'utilisateur est déjà inscrit
     models.participation
       .findByPartyAndUserId(partyId, userId)
-      .then(([existingParticipant]) => {
-        console.info("Vérification de l'existence de la participation :", existingParticipant);
+      .then((existingParticipant) => {
+        console.info(
+          "Vérification de l'existence de la participation :",
+          existingParticipant
+        );
 
-        if (existingParticipant.length > 0) {
+        if (existingParticipant) {
           console.info("Utilisateur déjà inscrit à cette partie :", {
             partyId,
             userId,
           });
-          return res.status(409).json({ error: "L'utilisateur est déjà inscrit à cette partie." });
+          return res
+            .status(409)
+            .json({ error: "L'utilisateur est déjà inscrit à cette partie." });
         }
 
         // Ajoute l'utilisateur à la participation
-        return models.participation.addParticipantToParty(partyId, userId).then(() => {
-          console.info("Utilisateur ajouté à la participation avec succès :", { partyId, userId });
-          res.status(201).json({ message: "Utilisateur ajouté à la partie avec succès." });
-        });
+        return models.participation
+          .addParticipantToParty(partyId, userId)
+          .then((created) => {
+            console.info(
+              "Utilisateur ajouté à la participation avec succès :",
+              { partyId, userId }
+            );
+            res.status(201).json(created);
+          });
       })
       .catch((err) => {
         console.error("Erreur lors de l'ajout de la participation :", err);
@@ -155,13 +169,15 @@ class ParticipationControllers {
     const partyId = parseInt(req.params.idPartie, 10);
     const userId = parseInt(req.params.idPlayer, 10);
 
-    console.info("Suppression de la participation, covoiturages et repas pour l'utilisateur :", {
-      partyId,
-      userId,
-    });
+    console.info(
+      "Suppression de la participation, covoiturages et repas pour l'utilisateur :",
+      { partyId, userId }
+    );
 
     if (!partyId || !userId) {
-      return res.status(400).json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
+      return res
+        .status(400)
+        .json({ error: "L'ID de la partie et de l'utilisateur sont requis." });
     }
 
     // Suppression des covoiturages, repas, et participation
@@ -171,13 +187,16 @@ class ParticipationControllers {
       models.participation.deleteByPartyAndUserId(partyId, userId),
     ])
       .then(([covoiturageResult, repasResult, participationResult]) => {
-        if (participationResult.affectedRows === 0) {
-          console.info("Aucune participation trouvée pour l'utilisateur dans la partie :", partyId);
+        if (!participationResult || participationResult.count === 0) {
+          console.info(
+            "Aucune participation trouvée pour l'utilisateur dans la partie :",
+            partyId
+          );
           return res.status(404).json({ message: "Participation non trouvée." });
         } else {
           console.info(
             "Participation, covoiturages et repas supprimés pour l'utilisateur dans la partie :",
-            partyId,
+            partyId
           );
           return res.status(204).send();
         }
@@ -185,9 +204,11 @@ class ParticipationControllers {
       .catch((err) => {
         console.error(
           "Erreur lors de la suppression des données de l'utilisateur dans la partie :",
-          err,
+          err
         );
-        res.status(500).json({ error: "Erreur serveur lors de la suppression des données." });
+        res
+          .status(500)
+          .json({ error: "Erreur serveur lors de la suppression des données." });
       });
   }
 
@@ -197,12 +218,8 @@ class ParticipationControllers {
 
     models.participation
       .delete(id)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404);
-        } else {
-          res.sendStatus(204);
-        }
+      .then(() => {
+        res.sendStatus(204);
       })
       .catch((err) => {
         console.error(err);
@@ -217,8 +234,7 @@ class ParticipationControllers {
 
     models.participation
       .getCountUserParticipation(utilisateurId, partieId)
-      .then(([rows]) => {
-        const count = rows[0]?.count || 0;
+      .then((count) => {
         if (count > 0) {
           console.info("L'utilisateur est déjà inscrit à cette partie.");
           res.status(200).json({ isSubscribed: true });
@@ -239,10 +255,10 @@ class ParticipationControllers {
 
     models.participation
       .deleteByUserAndPartie(utilisateurId, partieId)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
+      .then((result) => {
+        if (!result || result.count === 0) {
           console.info(
-            "Une erreur s'est produite lors de la tentative de suppression de la participation",
+            "Une erreur s'est produite lors de la tentative de suppression de la participation"
           );
           res.sendStatus(404);
         } else {
@@ -266,12 +282,9 @@ class ParticipationControllers {
 
     models.participation
       .update(participation)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404);
-        } else {
-          res.status(200).json(participation);
-        }
+      .then((updated) => {
+        if (!updated) return res.sendStatus(404);
+        return res.status(200).json(updated);
       })
       .catch((err) => {
         console.error(err);

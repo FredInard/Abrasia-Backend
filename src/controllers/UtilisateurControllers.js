@@ -2,6 +2,7 @@
 
 import fs from "fs";
 import sharp from "sharp";
+import argon2 from "argon2";
 import models from "../models/index.js"; // Assurez-vous que models/index.js est en ESM
 
 class UtilisateurControllers {
@@ -9,7 +10,7 @@ class UtilisateurControllers {
   static browse(req, res) {
     models.utilisateur
       .findAll()
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -25,12 +26,9 @@ class UtilisateurControllers {
 
     models.utilisateur
       .find(id)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0]);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((row) => {
+        if (row) return res.status(200).json(row);
+        return res.sendStatus(404);
       })
       .catch((err) => {
         console.error(err);
@@ -41,28 +39,34 @@ class UtilisateurControllers {
   // POST /utilisateurs
   static async add(req, res) {
     const utilisateur = req.body;
+    // Normaliser l'email: trim + lowercase
+    if (utilisateur && typeof utilisateur.email === "string") {
+      utilisateur.email = utilisateur.email.trim().toLowerCase();
+    }
     console.info("utilisateur back is :", utilisateur);
 
     // Valeur par défaut pour l'image de profil si non spécifiée
+    // Doit correspondre au dossier réellement servi par Express: "/public"
     utilisateur.photo_profil =
-      utilisateur.photo_profil || "public/assets/images/profilPictures/dragonBook.webp";
+      utilisateur.photo_profil ||
+      "public/profilPictures/dragonBook.webp";
 
     try {
       // Vérification si l'email ou le pseudo existe déjà
-      const [existingUsers] = await models.utilisateur.findByEmailOrPseudo(
+      const existingUser = await models.utilisateur.findByEmailOrPseudo(
         utilisateur.email,
-        utilisateur.pseudo,
+        utilisateur.pseudo
       );
 
-      if (existingUsers.length > 0) {
+      if (existingUser) {
         return res.status(409).json({
           error: "L'email ou le pseudo est déjà utilisé.",
         });
       }
 
       // Insérer le nouvel utilisateur
-      const [result] = await models.utilisateur.insert(utilisateur);
-      return res.status(201).json({ id: result.insertId, ...utilisateur });
+      const created = await models.utilisateur.insert(utilisateur);
+      return res.status(201).json(created);
     } catch (err) {
       console.error("Erreur lors de l'insertion de l'utilisateur :", err);
       return res.sendStatus(500);
@@ -70,12 +74,17 @@ class UtilisateurControllers {
   }
 
   // PUT /utilisateurs/:id
-  static edit(req, res) {
+  static async edit(req, res) {
     console.info("Contenu de req.body :", req.body);
     const utilisateur = {
       ...req.body,
       id: parseInt(req.params.id, 10),
     };
+
+    // Normaliser l'email si présent
+    if (typeof utilisateur.email === "string") {
+      utilisateur.email = utilisateur.email.trim().toLowerCase();
+    }
 
     // Remplacez les champs vides ou contenant "null" par null
     Object.keys(utilisateur).forEach((key) => {
@@ -85,23 +94,36 @@ class UtilisateurControllers {
     });
     console.info("Utilisateur avant traitement:", utilisateur);
 
-    // Si un fichier est inclus, ajoutez son chemin
+    // Si un fichier est inclus, traiter et déplacer l'image vers public/profilPictures
     if (req.file) {
-      utilisateur.photo_profil = req.file.path;
+      try {
+        const tmpPath = req.file.path.replace(/\\/g, "/");
+        const destDir = "public/profilPictures";
+        if (!fs.existsSync(destDir)) {
+          fs.mkdirSync(destDir, { recursive: true });
+        }
+        const ext = (req.file.originalname.match(/\.[a-zA-Z0-9]+$/) || [".png"])[0];
+        const base = `pp_${Date.now()}_${Math.round(Math.random() * 1e6)}`;
+        const destPath = `${destDir}/${base}${ext}`;
+
+        await sharp(tmpPath).resize(1024, 1024, { fit: "inside" }).toFile(destPath);
+        // Nettoyer le fichier temporaire
+        fs.unlink(tmpPath, (e) => e && console.warn("unlink tmp error:", e.message));
+
+        utilisateur.photo_profil = `/${destPath.replace(/\\/g, "/")}`; // /public/profilPictures/xxx
+      } catch (e) {
+        console.error("Erreur lors du traitement de la photo_profil:", e);
+        return res.status(500).json({ error: "Erreur lors du traitement de l'image." });
+      }
     }
 
     console.info("Utilisateur après traitement:", utilisateur);
 
     models.utilisateur
       .update(utilisateur)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404);
-          console.info("Aucune mise à jour effectuée. Result:", result);
-        } else {
-          res.status(200).json(utilisateur);
-          console.info("Mise à jour réussie. Result:", result);
-        }
+      .then((updated) => {
+        if (!updated) return res.sendStatus(404);
+        return res.status(200).json(updated);
       })
       .catch((err) => {
         console.error("Erreur lors de la mise à jour:", err);
@@ -112,41 +134,50 @@ class UtilisateurControllers {
   // POST /login
   // POST /login
   static verifyUtilisateur(req, res, next) {
-    const { email } = req.body;
+    const rawEmail = req.body?.email;
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
+    // Écraser la valeur pour la suite de la chaîne (cohérence logs/middlewares)
+    req.body.email = email;
     console.info("🔎 [AUTH] Vérification de l'utilisateur pour :", email);
 
     models.utilisateur
       .findByEmailWithPassword(email)
-      .then(([utilisateurs]) => {
-        const utilisateur = utilisateurs[0];
+      .then((userOrArray) => {
+        const utilisateur = Array.isArray(userOrArray)
+          ? userOrArray[0]?.[0]
+          : userOrArray;
 
-        if (!utilisateur) {
-          console.warn("⚠️ [AUTH] Utilisateur non trouvé :", email);
-          return res.status(401).json({ error: "Utilisateur non trouvé." });
-        }
+      if (!utilisateur) {
+        console.warn("⚠️ [AUTH] Utilisateur non trouvé :", email);
+        return res.status(401).json({ error: "Utilisateur non trouvé." });
+      }
 
-        // Vérifier si le rôle est "inactif"
-        if (utilisateur.role === "inactif") {
-          console.warn("⛔ [AUTH] Connexion refusée : compte inactif.", email);
-          return res.status(403).json({
-            error: "Ce compte est désactivé. Veuillez contacter un administrateur.",
-          });
-        }
-
-        console.info("✅ [AUTH] Utilisateur autorisé :", {
-          id: utilisateur.id,
-          email: utilisateur.email,
-          role: utilisateur.role,
+      // Vérifier si le rôle est "inactif"
+      if (utilisateur.role === "inactif") {
+        console.warn(
+          "⛔ [AUTH] Connexion refusée : compte inactif.",
+          email
+        );
+        return res.status(403).json({
+          error: "Ce compte est désactivé. Veuillez contacter un administrateur.",
         });
+      }
 
-        req.utilisateur = utilisateur;
-        next();
-      })
-      .catch((err) => {
-        console.error("❌ [AUTH] Erreur lors de la vérification de l'utilisateur :", err);
-        res.status(500).json({ error: "Erreur interne du serveur." });
+      console.info("✅ [AUTH] Utilisateur autorisé :", {
+        id: utilisateur.id,
+        email: utilisateur.email,
+        role: utilisateur.role,
       });
-  }
+
+      req.utilisateur = utilisateur;
+      next();
+    })
+    .catch((err) => {
+      console.error("❌ [AUTH] Erreur lors de la vérification de l'utilisateur :", err);
+      res.status(500).json({ error: "Erreur interne du serveur." });
+    });
+}
+
 
   // PUT /utilisateurs/:id/anonymize
   static anonymize(req, res) {
@@ -154,12 +185,8 @@ class UtilisateurControllers {
 
     models.utilisateur
       .anonymize(id)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404);
-        } else {
-          res.sendStatus(204);
-        }
+      .then(() => {
+        res.sendStatus(204);
       })
       .catch((err) => {
         console.error("Erreur lors de l'anonymisation :", err);
@@ -168,41 +195,36 @@ class UtilisateurControllers {
   }
 
   // PUT /utilisateurs/:id/changerMotDePasse
-  static changerMotDePasse(req, res) {
+  static async changerMotDePasse(req, res) {
     console.info("Requête reçue pour changer le mot de passe.");
 
-    const id = parseInt(req.params.id, 10);
-    const { hashedPassword } = req.body;
+    try {
+      const id = parseInt(req.params.id, 10);
+      const { motDePasse } = req.body;
 
-    console.info("ID utilisateur reçu :", id);
-    console.info("Mot de passe haché reçu :", hashedPassword);
+      console.info("ID utilisateur reçu :", id);
 
-    if (!hashedPassword) {
-      console.warn("Aucun mot de passe haché fourni dans la requête.");
-      return res.status(400).json({
-        error: "Le mot de passe haché est requis",
-      });
+      if (!motDePasse || typeof motDePasse !== "string" || motDePasse.trim().length === 0) {
+        console.warn("Aucun mot de passe valide fourni dans la requête.");
+        return res.status(400).json({ error: "Le mot de passe est requis." });
+      }
+
+      console.info(
+        "Tentative de mise à jour du mot de passe pour l'utilisateur ID :",
+        id
+      );
+
+      const hashedPassword = await argon2.hash(motDePasse);
+      await models.utilisateur.updatePassword(id, hashedPassword);
+      console.info(
+        "Mot de passe mis à jour avec succès pour l'utilisateur ID :",
+        id
+      );
+      return res.sendStatus(204);
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour du mot de passe :", err);
+      return res.status(500).json({ error: "Erreur interne du serveur" });
     }
-
-    console.info("Tentative de mise à jour du mot de passe pour l'utilisateur ID :", id);
-
-    models.utilisateur
-      .updatePassword(id, hashedPassword)
-      .then(([result]) => {
-        console.info("Résultat de la mise à jour :", result);
-
-        if (result.affectedRows === 0) {
-          console.warn("Utilisateur introuvable avec ID :", id);
-          res.status(404).json({ error: "Utilisateur introuvable" });
-        } else {
-          console.info("Mot de passe mis à jour avec succès pour l'utilisateur ID :", id);
-          res.sendStatus(204);
-        }
-      })
-      .catch((err) => {
-        console.error("Erreur lors de la mise à jour du mot de passe :", err);
-        res.status(500).json({ error: "Erreur interne du serveur" });
-      });
   }
 
   // PUT /utilisateurs/:id/upload
@@ -214,27 +236,23 @@ class UtilisateurControllers {
     // Utilisation de sharp pour redimensionner l'image
     sharp(filePath)
       .resize(1024, 1024)
-      .toFile(`public/assets/images/profilPictures/${fileName}`, (err) => {
+      .toFile(`public/profilPictures/${fileName}`, (err) => {
         if (err) {
           console.error(err);
           res.status(500).send("Erreur lors du redimensionnement de l'image");
         } else {
-          const photoProfil = `assets/images/profilPictures/${fileName}`;
+          const photoProfil = `/public/profilPictures/${fileName}`;
 
           models.utilisateur
             .updatePhotoProfil(id, photoProfil)
-            .then(([result]) => {
-              if (result.affectedRows === 0) {
-                res.sendStatus(404);
-              } else {
-                // Suppression du fichier temporaire
-                fs.unlink(filePath, (unlinkErr) => {
-                  if (unlinkErr) {
-                    console.error(unlinkErr);
-                  }
-                  res.sendStatus(204);
-                });
-              }
+            .then(() => {
+              // Suppression du fichier temporaire
+              fs.unlink(filePath, (unlinkErr) => {
+                if (unlinkErr) {
+                  console.error(unlinkErr);
+                }
+                res.sendStatus(204);
+              });
             })
             .catch((dbErr) => {
               console.error(dbErr);
@@ -250,8 +268,8 @@ class UtilisateurControllers {
 
     models.utilisateur
       .findByPseudo(pseudo)
-      .then(([result]) => {
-        const isPseudoExist = result.length > 0;
+      .then((user) => {
+        const isPseudoExist = Boolean(user);
         res.json({ isPseudoExist });
       })
       .catch((err) => {
@@ -266,12 +284,9 @@ class UtilisateurControllers {
 
     models.utilisateur
       .findProfileById(id)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0]);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((row) => {
+        if (row) return res.status(200).json(row);
+        return res.sendStatus(404);
       })
       .catch((err) => {
         console.error(err);
@@ -283,7 +298,9 @@ class UtilisateurControllers {
   static destroy(req, res) {
     const id = parseInt(req.params.id, 10);
 
-    console.info(`Suppression de l'utilisateur avec l'ID : ${id} et ses données associées`);
+    console.info(
+      `Suppression de l'utilisateur avec l'ID : ${id} et ses données associées`
+    );
 
     // Supprimer les données associées via les managers
     const deletions = [
@@ -298,14 +315,9 @@ class UtilisateurControllers {
         // Supprimer l'utilisateur une fois les données associées supprimées
         return models.utilisateur.delete(id);
       })
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          console.info(`Utilisateur avec l'ID ${id} non trouvé.`);
-          res.sendStatus(404);
-        } else {
-          console.info(`Utilisateur avec l'ID ${id} supprimé avec succès.`);
-          res.sendStatus(204);
-        }
+      .then(() => {
+        console.info(`Utilisateur avec l'ID ${id} supprimé avec succès.`);
+        res.sendStatus(204);
       })
       .catch((err) => {
         console.error("Erreur lors de la suppression des données :", err);

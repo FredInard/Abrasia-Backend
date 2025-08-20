@@ -20,11 +20,11 @@ class ExportController {
         const workbook = XLSX.utils.book_new();
 
         // Création de feuilles pour chaque table
-        const utilisateurSheet = XLSX.utils.json_to_sheet(utilisateurs[0]);
-        const partieSheet = XLSX.utils.json_to_sheet(parties[0]);
-        const participationSheet = XLSX.utils.json_to_sheet(participations[0]);
-        const repasSheet = XLSX.utils.json_to_sheet(repas[0]);
-        const covoiturageSheet = XLSX.utils.json_to_sheet(covoiturages[0]);
+        const utilisateurSheet = XLSX.utils.json_to_sheet(utilisateurs);
+        const partieSheet = XLSX.utils.json_to_sheet(parties);
+        const participationSheet = XLSX.utils.json_to_sheet(participations);
+        const repasSheet = XLSX.utils.json_to_sheet(repas);
+        const covoiturageSheet = XLSX.utils.json_to_sheet(covoiturages);
 
         // Ajout des feuilles au workbook
         XLSX.utils.book_append_sheet(workbook, utilisateurSheet, "Utilisateurs");

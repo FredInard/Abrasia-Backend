@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cotisation {
+  id             Int                   @id @default(autoincrement())
+  utilisateur_id Int
+  annee          Int                   @db.SmallInt
+  montant        Decimal               @db.Decimal(10, 2)
+  date_paiement  DateTime?             @db.Timestamptz(6)
+  etat           cotisation_etat_enum? @default(non_payee)
+  utilisateur    utilisateur           @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_cotisation_user")
+}
+
+model covoiturage {
+  id             Int         @id @default(autoincrement())
+  utilisateur_id Int
+  partie_id      Int
+  ville_depart   String      @db.VarChar(255)
+  ville_arrivee  String      @db.VarChar(255)
+  heure_depart   DateTime    @db.Timestamptz(6)
+  propose_retour Boolean?    @default(false)
+  partie         partie      @relation(fields: [partie_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_covoiturage_partie")
+  utilisateur    utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_covoiturage_user")
+}
+
+model document {
+  id             Int                 @id @default(autoincrement())
+  nom            String              @db.VarChar(255)
+  type           document_type_enum? @default(autre)
+  chemin_fichier String              @db.VarChar(255)
+  date_upload    DateTime?           @default(now()) @db.Timestamptz(6)
+  utilisateur_id Int
+  utilisateur    utilisateur         @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_document_user")
+}
+
+model log {
+  id             Int         @id @default(autoincrement())
+  utilisateur_id Int
+  action         String      @db.VarChar(100)
+  description    String?
+  timestamp      DateTime?   @default(now()) @db.Timestamptz(6)
+  utilisateur    utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_log_user")
+}
+
+model participation {
+  id                 Int         @id @default(autoincrement())
+  utilisateur_id     Int
+  partie_id          Int
+  date_participation DateTime?   @default(now()) @db.Timestamptz(6)
+  partie             partie      @relation(fields: [partie_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_participation_partie")
+  utilisateur        utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_participation_user")
+
+  @@unique([utilisateur_id, partie_id], map: "uq_utilisateur_partie")
+}
+
+model partie {
+  id                Int               @id @default(autoincrement())
+  titre             String            @db.VarChar(255)
+  type              partie_type_enum? @default(jeux)
+  description       String?
+  date              DateTime          @db.Timestamptz(6)
+  nb_max_joueurs    Int
+  id_maitre_du_jeu  Int?
+  duree_estimee     Int?
+  lieu              String?           @db.VarChar(255)
+  photo_scenario    String?           @db.VarChar(255)
+  strict_nb_joueurs Boolean           @default(false)
+  date_creation     DateTime?         @default(now()) @db.Timestamptz(6)
+  covoiturage       covoiturage[]
+  participation     participation[]
+  utilisateur       utilisateur?      @relation(fields: [id_maitre_du_jeu], references: [id], onUpdate: NoAction, map: "fk_partie_mdj")
+  repas             repas[]
+}
+
+model password_reset_tokens {
+  id             Int         @id @default(autoincrement())
+  utilisateur_id Int
+  token          String      @db.VarChar(255)
+  expiration     DateTime    @db.Timestamptz(6)
+  utilisateur    utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pwdreset_user")
+}
+
+model repas {
+  id             Int         @id @default(autoincrement())
+  utilisateur_id Int
+  partie_id      Int
+  contenu        String
+  partie         partie      @relation(fields: [partie_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_repas_partie")
+  utilisateur    utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_repas_user")
+}
+
+model transaction_comptable {
+  id             Int                   @id @default(autoincrement())
+  date           DateTime              @db.Timestamptz(6)
+  montant        Decimal               @db.Decimal(10, 2)
+  type           transaction_type_enum
+  categorie      String                @db.VarChar(100)
+  description    String?
+  utilisateur_id Int
+  utilisateur    utilisateur           @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_transaction_user")
+}
+
+model utilisateur {
+  id                    Int                     @id @default(autoincrement())
+  nom                   String                  @db.VarChar(100)
+  prenom                String                  @db.VarChar(100)
+  email                 String                  @unique @db.VarChar(100)
+  pseudo                String                  @unique @db.VarChar(100)
+  hashedpassword        String                  @db.VarChar(255)
+  role                  role_enum?              @default(membre)
+  date_naissance        DateTime?               @db.Date
+  adresse               String?                 @db.VarChar(255)
+  ville                 String?                 @db.VarChar(100)
+  code_postal           String?                 @db.VarChar(10)
+  telephone             String?                 @db.VarChar(15)
+  bio                   String?
+  photo_profil          String?                 @db.VarChar(255)
+  date_inscription      DateTime?               @default(now()) @db.Timestamptz(6)
+  dernier_login         DateTime?               @db.Timestamptz(6)
+  cgu_accepted          Boolean                 @default(false)
+  cookies_accepted      Boolean                 @default(false)
+  cotisation            cotisation[]
+  covoiturage           covoiturage[]
+  document              document[]
+  log                   log[]
+  participation         participation[]
+  partie                partie[]
+  password_reset_tokens password_reset_tokens[]
+  repas                 repas[]
+  transaction_comptable transaction_comptable[]
+}
+
+enum cotisation_etat_enum {
+  payee
+  non_payee
+}
+
+enum document_type_enum {
+  facture
+  justificatif
+  rapport
+  autre
+}
+
+enum partie_type_enum {
+  jeux
+  evenement
+}
+
+enum role_enum {
+  membre
+  admin
+  tresorier
+  secretaire
+  inactif
+}
+
+enum transaction_type_enum {
+  recette
+  depense
+}

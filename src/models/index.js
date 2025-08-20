@@ -1,33 +1,16 @@
-// index.js (ESM)
+// src/models/index.js
 
+// Plus de mysql2 ici
 import dotenv from "dotenv";
 dotenv.config();
 
-import mysql from "mysql2/promise";
+// On utilise le client Prisma généré (ESM)
+import { PrismaClient } from "../generated/prisma/index.js";
 
-// Création d'une connexion à la base de données
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+// Prisma en singleton
+const prisma = new PrismaClient();
 
-const pool = mysql.createPool({
-  host: DB_HOST,
-  port: DB_PORT,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
-});
-
-// Vérification de la connexion
-pool.getConnection().catch(() => {
-  console.warn(
-    "Warning:",
-    "Failed to get a DB connection.",
-    "Did you create a .env file with valid credentials?",
-    "Routes using models won't work as intended",
-  );
-});
-
-// Déclaration et enregistrement des modèles (managers)
-// Assurez-vous que ces fichiers sont également en ESM (avec "export default")
+// Managers
 import ParticipationManager from "./ParticipationManager.js";
 import PartieManager from "./PartieManager.js";
 import UtilisateurManager from "./UtilisateurManager.js";
@@ -36,45 +19,41 @@ import CovoiturageManager from "./CovoiturageManager.js";
 import LogManager from "./LogManager.js";
 import PasswordResetTokenManager from "./PasswordResetManager.js";
 
+// Tous les managers reçoivent le client Prisma
 const models = {};
 
 models.participation = new ParticipationManager();
-models.participation.setDatabase(pool);
+models.participation.setDatabase(prisma);
 
 models.partie = new PartieManager();
-models.partie.setDatabase(pool);
+models.partie.setDatabase(prisma);
 
 models.utilisateur = new UtilisateurManager();
-models.utilisateur.setDatabase(pool);
+models.utilisateur.setDatabase(prisma);
 
 models.repas = new RepasManager();
-models.repas.setDatabase(pool);
+models.repas.setDatabase(prisma);
 
 models.covoiturage = new CovoiturageManager();
-models.covoiturage.setDatabase(pool);
+models.covoiturage.setDatabase(prisma);
 
 models.log = new LogManager();
-models.log.setDatabase(pool);
+models.log.setDatabase(prisma);
 
 models.passwordResetToken = new PasswordResetTokenManager();
-models.passwordResetToken.setDatabase(pool);
+models.passwordResetToken.setDatabase(prisma);
 
-// Gestionnaire pour les références de modèles non définies
+// Garder le proxy d'erreur utile
 const handler = {
   get(obj, prop) {
-    if (prop in obj) {
-      return obj[prop];
-    }
-
-    const pascalize = (string) => string.slice(0, 1).toUpperCase() + string.slice(1);
-
+    if (prop in obj) return obj[prop];
+    const pascalize = (s) => s.slice(0, 1).toUpperCase() + s.slice(1);
     throw new ReferenceError(
       `models.${prop} is not defined. Did you create ${pascalize(
-        prop,
-      )}Manager.js, and did you register it in backend/src/models/index.js?`,
+        prop
+      )}Manager.js, and did you register it in backend/src/models/index.js?`
     );
   },
 };
 
-// Exportation par défaut en mode ESM
 export default new Proxy(models, handler);
