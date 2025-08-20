@@ -5,19 +5,18 @@ class AbstractManager {
   }
 
   find(id) {
-    return this.database.query(
-      `select * from  ${this.table} where id = ?`,
-      [id],
-      console.info("id", id)
-    )
+    // Prisma: delegate based on model/table name
+    return this.database[this.table].findUnique({
+      where: { id: Number(id) },
+    })
   }
 
   findAll() {
-    return this.database.query(`select * from  ${this.table}`)
+    return this.database[this.table].findMany()
   }
 
   delete(id) {
-    return this.database.query(`delete from ${this.table} where id = ?`, [id])
+    return this.database[this.table].delete({ where: { id: Number(id) } })
   }
 
   setDatabase(database) {

@@ -13,7 +13,7 @@ class PartieControllers {
   static browse(req, res) {
     models.partie
       .findAll()
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -28,12 +28,9 @@ class PartieControllers {
 
     models.partie
       .find(id)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0]);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((row) => {
+        if (row) return res.status(200).json(row);
+        return res.sendStatus(404);
       })
       .catch((err) => {
         console.error(err);
@@ -47,12 +44,8 @@ class PartieControllers {
 
     models.partie
       .findPartieByUtilisateurId(id)
-      .then(([rows]) => {
-        if (rows.length > 0) {
-          res.status(200).json(rows);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((rows) => {
+        res.status(200).json(rows);
       })
       .catch((err) => {
         console.error(err);
@@ -67,15 +60,21 @@ class PartieControllers {
       const partie = { ...req.body };
 
       if (req.file) {
-        const filePath = req.file.path.replace(/\\/g, "/");
-        partie.photo_scenario = filePath.startsWith("public")
-          ? filePath
-          : `public/${filePath}`;
+        // Normalise le chemin pour qu'il soit directement accessible via l'URL
+        // L'app Express sert les fichiers statiques sur "/public" (voir src/app.js)
+        let filePath = req.file.path.replace(/\\/g, "/");
+        // Enlève d'éventuels préfixes/diagonales et force le préfixe "/public/"
+        filePath = filePath.replace(/^\/*/, ""); // supprime les "/" de début
+        if (!filePath.startsWith("public/")) {
+          filePath = `public/${filePath.replace(/^public\/?/, "")}`;
+        }
+        partie.photo_scenario = `/${filePath}`; // garantit un chemin commençant par "/public/..."
       } else {
-        partie.photo_scenario = "public/assets/images/profilPictures/dragonBook.webp";
+        // Image par défaut
+        partie.photo_scenario = "public/profilPictures/dragonBook.webp";
       }
 
-      const [result] = await models.partie.insert(partie);
+      const created = await models.partie.insert(partie);
 
       // Préparer le message pour Discord
       const discordMessage = `🎲 **Nouvelle partie créée !**
@@ -84,10 +83,16 @@ class PartieControllers {
 **Date :** ${partie.date}
 **Lieu :** ${partie.lieu}`;
 
-      // Envoyer le message sur Discord
-      await sendDiscordMessage(DISCORD_WEBHOOK_URL, discordMessage);
+      // Envoyer le message sur Discord (si configuré)
+      if (DISCORD_WEBHOOK_URL) {
+        try {
+          await axios.post(DISCORD_WEBHOOK_URL, { content: discordMessage });
+        } catch (discordErr) {
+          console.warn("Erreur lors de l'envoi du message Discord:", discordErr?.message || discordErr);
+        }
+      }
 
-      res.status(201).json({ id: result.insertId, ...partie });
+      res.status(201).json(created);
     } catch (err) {
       console.error("Erreur lors de l'ajout de la partie :", err);
       res.sendStatus(500);
@@ -102,23 +107,20 @@ class PartieControllers {
     const partie = { ...req.body };
     partie.id = id;
 
-    // Gestion du chemin de l'image
+    // Gestion du chemin de l'image (toujours "/public/..." pour correspondre au static)
     if (req.file) {
-      partie.photo_scenario = req.file.path.replace(/\\/g, "/");
-      if (!partie.photo_scenario.startsWith("public/")) {
-        partie.photo_scenario = "public/" + partie.photo_scenario.replace(/^\/+/, "");
+      let fp = req.file.path.replace(/\\/g, "/");
+      fp = fp.replace(/^\/*/, "");
+      if (!fp.startsWith("public/")) {
+        fp = `public/${fp.replace(/^public\/?/, "")}`;
       }
+      partie.photo_scenario = `/${fp}`;
     }
 
     console.info("Données de la partie pour mise à jour:", partie);
 
     try {
-      const [result] = await models.partie.update(partie);
-
-      if (result.affectedRows === 0) {
-        console.info(`Aucune partie trouvée avec l'ID: ${id}`);
-        return res.status(404).json({ error: "Partie non trouvée." });
-      }
+      const updated = await models.partie.update(partie);
 
       console.info(`Partie avec l'ID ${id} mise à jour avec succès.`);
 
@@ -165,9 +167,7 @@ class PartieControllers {
         );
       }
 
-      return res
-        .status(200)
-        .json({ message: "Partie mise à jour avec succès.", partie });
+      return res.status(200).json(updated);
     } catch (err) {
       console.error("Erreur lors de la mise à jour de la partie :", err.message);
       return res.status(500).json({ error: "Erreur serveur lors de la mise à jour." });
@@ -193,10 +193,7 @@ class PartieControllers {
       ]);
 
       // Suppression de la partie elle-même
-      const result = await models.partie.delete(partyId);
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "Partie non trouvée." });
-      }
+      await models.partie.deleteByPartyId(partyId);
 
       console.info(`Partie ID: ${partyId} et dépendances supprimées.`);
       res.status(204).send();
@@ -210,7 +207,7 @@ class PartieControllers {
   static affichageInfoPartie(req, res) {
     models.partie
       .getAffichageInfoPartie()
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -225,7 +222,7 @@ class PartieControllers {
 
     models.partie
       .getAffichageInfoPartieDate(date)
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -240,12 +237,8 @@ class PartieControllers {
 
     models.partie
       .findPartieByUtilisateurId(utilisateurId)
-      .then(([rows]) => {
-        if (rows.length > 0) {
-          res.status(200).json(rows);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((rows) => {
+        res.status(200).json(rows);
       })
       .catch((err) => {
         console.error(err);
@@ -259,12 +252,8 @@ class PartieControllers {
 
     models.partie
       .findJoueursByPartieId(partieId)
-      .then(([rows]) => {
-        if (rows.length > 0) {
-          res.status(200).json(rows);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((rows) => {
+        res.status(200).json(rows);
       })
       .catch((err) => {
         console.error(err);
@@ -278,12 +267,8 @@ class PartieControllers {
 
     models.partie
       .findPartieMeneurByUtilisateurId(utilisateurId)
-      .then(([rows]) => {
-        if (rows.length > 0) {
-          res.status(200).json(rows);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((rows) => {
+        res.status(200).json(rows);
       })
       .catch((err) => {
         console.error(err);
@@ -297,12 +282,8 @@ class PartieControllers {
 
     models.partie
       .getCountPartieById(partieId)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0]);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((obj) => {
+        res.status(200).json(obj);
       })
       .catch((err) => {
         console.error(err);
@@ -313,7 +294,7 @@ class PartieControllers {
   // // DELETE /parties/destroyer/:id
   // static destroyeurDePartie(req, res) {
   //   const id = parseInt(req.params.id, 10);
-
+  //
   //   models.partie
   //     .getDestroyeurDePartie(id)
   //     .then(() => {

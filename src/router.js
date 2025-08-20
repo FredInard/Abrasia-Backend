@@ -3,6 +3,7 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 
 // Import des contrôleurs et des middlewares
 import PasswordResetController from "./controllers/PasswordResetController.js";
@@ -33,7 +34,15 @@ console.info("ExportController :", ExportController);
 // ------------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "public/assets/uploads");
+    const dest = "public/uploads"; // dossier existant
+    try {
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest, { recursive: true });
+      }
+    } catch (e) {
+      console.error("Erreur création dossier upload:", e);
+    }
+    cb(null, dest);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -44,7 +53,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
       req.fileValidationError = "Seules les images sont autorisées !";
       return cb(new Error("Seules les images sont autorisées !"), false);
     }

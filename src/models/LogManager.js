@@ -7,30 +7,29 @@ class LogManager extends AbstractManager {
 
   // Insérer un nouveau log
   insert(log) {
-    return this.database.query(
-      `INSERT INTO ${this.table} (utilisateur_id, action, description, timestamp) VALUES (?, ?, ?, ?)`,
-      [
-        log.utilisateur_id,
-        log.action,
-        log.description,
-        log.timestamp || new Date(),
-      ]
-    )
+    return this.database.log.create({
+      data: {
+        utilisateur_id: log.utilisateur_id,
+        action: log.action,
+        description: log.description || null,
+        timestamp: log.timestamp || new Date(),
+      },
+    })
   }
 
   // Récupérer tous les logs
   findAll() {
-    return this.database.query(`SELECT * FROM ${this.table}`)
+    return this.database.log.findMany()
   }
 
   // Récupérer un log par ID
   find(id) {
-    return this.database.query(`SELECT * FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.log.findUnique({ where: { id: Number(id) } })
   }
 
   // Supprimer un log par ID
   delete(id) {
-    return this.database.query(`DELETE FROM ${this.table} WHERE id = ?`, [id])
+    return this.database.log.delete({ where: { id: Number(id) } })
   }
 }
 

@@ -7,7 +7,7 @@ class ParticipationControllers {
   static browse(req, res) {
     models.participation
       .findAll()
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -22,12 +22,9 @@ class ParticipationControllers {
 
     models.participation
       .find(id)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0]);
-        } else {
-          res.sendStatus(404);
-        }
+      .then((row) => {
+        if (row) return res.status(200).json(row);
+        return res.sendStatus(404);
       })
       .catch((err) => {
         console.error(err);
@@ -41,11 +38,8 @@ class ParticipationControllers {
 
     models.participation
       .findParticipationsByPartyId(id)
-      .then(([rows]) => {
-        console.info(
-          "Participants trouvés dans la base de données :",
-          rows
-        );
+      .then((rows) => {
+        console.info("Participants trouvés dans la base de données :", rows);
         res.status(200).json(rows);
       })
       .catch((err) => {
@@ -72,8 +66,8 @@ class ParticipationControllers {
 
     models.participation
       .findByPartyAndUserId(partyId, userId)
-      .then(([existingParticipant]) => {
-        if (existingParticipant.length > 0) {
+      .then((existingParticipant) => {
+        if (existingParticipant) {
           console.info("L'utilisateur est déjà inscrit à cette partie.");
           return res.status(200).json({ isJoined: true });
         } else {
@@ -100,9 +94,9 @@ class ParticipationControllers {
 
     models.participation
       .insert(participation)
-      .then(([result]) => {
+      .then((created) => {
         console.info("Inscription à la partie réussie");
-        res.status(201).json({ id: result.insertId, ...participation });
+        res.status(201).json(created);
       })
       .catch((err) => {
         console.error(err);
@@ -135,13 +129,13 @@ class ParticipationControllers {
     // Vérifie si l'utilisateur est déjà inscrit
     models.participation
       .findByPartyAndUserId(partyId, userId)
-      .then(([existingParticipant]) => {
+      .then((existingParticipant) => {
         console.info(
           "Vérification de l'existence de la participation :",
           existingParticipant
         );
 
-        if (existingParticipant.length > 0) {
+        if (existingParticipant) {
           console.info("Utilisateur déjà inscrit à cette partie :", {
             partyId,
             userId,
@@ -154,14 +148,12 @@ class ParticipationControllers {
         // Ajoute l'utilisateur à la participation
         return models.participation
           .addParticipantToParty(partyId, userId)
-          .then(() => {
+          .then((created) => {
             console.info(
               "Utilisateur ajouté à la participation avec succès :",
               { partyId, userId }
             );
-            res
-              .status(201)
-              .json({ message: "Utilisateur ajouté à la partie avec succès." });
+            res.status(201).json(created);
           });
       })
       .catch((err) => {
@@ -195,7 +187,7 @@ class ParticipationControllers {
       models.participation.deleteByPartyAndUserId(partyId, userId),
     ])
       .then(([covoiturageResult, repasResult, participationResult]) => {
-        if (participationResult.affectedRows === 0) {
+        if (!participationResult || participationResult.count === 0) {
           console.info(
             "Aucune participation trouvée pour l'utilisateur dans la partie :",
             partyId
@@ -226,12 +218,8 @@ class ParticipationControllers {
 
     models.participation
       .delete(id)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404);
-        } else {
-          res.sendStatus(204);
-        }
+      .then(() => {
+        res.sendStatus(204);
       })
       .catch((err) => {
         console.error(err);
@@ -246,8 +234,7 @@ class ParticipationControllers {
 
     models.participation
       .getCountUserParticipation(utilisateurId, partieId)
-      .then(([rows]) => {
-        const count = rows[0]?.count || 0;
+      .then((count) => {
         if (count > 0) {
           console.info("L'utilisateur est déjà inscrit à cette partie.");
           res.status(200).json({ isSubscribed: true });
@@ -268,8 +255,8 @@ class ParticipationControllers {
 
     models.participation
       .deleteByUserAndPartie(utilisateurId, partieId)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
+      .then((result) => {
+        if (!result || result.count === 0) {
           console.info(
             "Une erreur s'est produite lors de la tentative de suppression de la participation"
           );
@@ -295,12 +282,9 @@ class ParticipationControllers {
 
     models.participation
       .update(participation)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404);
-        } else {
-          res.status(200).json(participation);
-        }
+      .then((updated) => {
+        if (!updated) return res.sendStatus(404);
+        return res.status(200).json(updated);
       })
       .catch((err) => {
         console.error(err);

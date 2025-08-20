@@ -9,7 +9,7 @@ class LogControllers {
   static browse(req, res) {
     models.log
       .findAll()
-      .then(([rows]) => {
+      .then((rows) => {
         res.status(200).json(rows)
       })
       .catch((err) => {
@@ -24,12 +24,9 @@ class LogControllers {
 
     models.log
       .find(id)
-      .then(([rows]) => {
-        if (rows[0]) {
-          res.status(200).json(rows[0])
-        } else {
-          res.sendStatus(404)
-        }
+      .then((row) => {
+        if (row) return res.status(200).json(row)
+        return res.sendStatus(404)
       })
       .catch((err) => {
         console.error(err)
@@ -45,8 +42,8 @@ class LogControllers {
 
     models.log
       .insert(log)
-      .then(([result]) => {
-        res.status(201).json({ id: result.insertId, ...log })
+      .then((created) => {
+        res.status(201).json(created)
       })
       .catch((err) => {
         console.error(err)
@@ -60,12 +57,8 @@ class LogControllers {
 
     models.log
       .delete(id)
-      .then(([result]) => {
-        if (result.affectedRows === 0) {
-          res.sendStatus(404)
-        } else {
-          res.sendStatus(204)
-        }
+      .then(() => {
+        res.sendStatus(204)
       })
       .catch((err) => {
         console.error(err)

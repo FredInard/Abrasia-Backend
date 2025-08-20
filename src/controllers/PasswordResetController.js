@@ -2,7 +2,6 @@
 
 import crypto from "crypto";
 import argon2 from "argon2";
-// import { hashingOptions } from "../auth.js";
 import models from "../models/index.js";
 import sendEmail from "../services/sendEmail.js";
 
@@ -12,16 +11,12 @@ class PasswordResetController {
 
     try {
       console.info("Email reçu pour la réinitialisation du mot de passe :", email);
+      const utilisateur = await models.utilisateur.findByEmail(email);
+      console.info("Utilisateur trouvé :", utilisateur);
 
-      const [users] = await models.utilisateur.findByEmail(email);
-      console.info("Utilisateurs trouvés :", users);
-
-      if (users.length === 0) {
+      if (!utilisateur) {
         return res.status(404).json({ message: "Utilisateur non trouvé." });
       }
-
-      const utilisateur = users[0];
-      console.info("Utilisateur trouvé :", utilisateur);
 
       const token = crypto.randomBytes(32).toString("hex");
       console.info("Token généré :", token);
@@ -64,12 +59,10 @@ class PasswordResetController {
     const { token, newPassword } = req.body;
 
     try {
-      const [tokens] = await models.passwordResetToken.findByToken(token);
-      if (tokens.length === 0) {
+      const resetToken = await models.passwordResetToken.findByToken(token);
+      if (!resetToken) {
         return res.status(400).json({ message: "Token invalide ou expiré." });
       }
-
-      const resetToken = tokens[0];
 
       if (new Date(resetToken.expiration) < new Date()) {
         return res.status(400).json({ message: "Token expiré." });
@@ -82,8 +75,8 @@ class PasswordResetController {
           .json({ message: "Le mot de passe doit comporter au moins 8 caractères." });
       }
 
-      // Hachage du mot de passe avec Argon2 et les mêmes options (hashingOptions)
-      const hashedPassword = await argon2.hash(newPassword, hashingOptions);
+      // Hachage du mot de passe avec Argon2 (options par défaut)
+      const hashedPassword = await argon2.hash(newPassword);
 
       // Mise à jour du mot de passe en base de données
       await models.utilisateur.updatePassword(resetToken.utilisateur_id, hashedPassword);
@@ -104,7 +97,7 @@ class PasswordResetController {
     const { email } = req.body;
 
     try {
-      const [utilisateur] = await models.utilisateur.findByEmail(email);
+      const utilisateur = await models.utilisateur.findByEmail(email);
       if (!utilisateur) {
         return res.status(404).json({ error: "Utilisateur introuvable." });
       }
@@ -112,7 +105,7 @@ class PasswordResetController {
       const token = crypto.randomBytes(32).toString("hex");
       const expiration = new Date(Date.now() + 3600000); // 1 heure
 
-      await models.passwordReset.insert({
+      await models.passwordResetToken.insert({
         utilisateur_id: utilisateur.id,
         token,
         expiration,
