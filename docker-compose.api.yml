@@ -1,0 +1,11 @@
+﻿services:
+  api:
+    build: .
+    container_name: abrs-api
+    env_file: .env.docker
+    ports:
+      - "4242:4242"
+    volumes:
+      - ./public/uploads:/app/public/uploads
+      - ./public/profilPictures:/app/public/profilPictures
+    restart: unless-stopped

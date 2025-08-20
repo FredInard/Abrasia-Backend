@@ -1,0 +1,8 @@
+node_modules
+pnpm-store
+.git
+.gitignore
+.env
+.DS_Store
+npm-debug.log*
+docker-compose*.yml
