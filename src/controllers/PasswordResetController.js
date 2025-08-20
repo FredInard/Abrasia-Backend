@@ -84,9 +84,7 @@ class PasswordResetController {
       // Suppression du token de réinitialisation
       await models.passwordResetToken.delete(resetToken.id);
 
-      return res
-        .status(200)
-        .json({ message: "Mot de passe réinitialisé avec succès." });
+      return res.status(200).json({ message: "Mot de passe réinitialisé avec succès." });
     } catch (error) {
       console.error("Erreur lors de la réinitialisation :", error);
       return res.status(500).json({ message: "Erreur interne du serveur." });
