@@ -1,6 +1,7 @@
 // controllers/ParticipationControllers.js
 
 import models from "../models/index.js"; // Vérifiez l'existence de models/index.js (ESM)
+import { profilePhotoUrl } from "../utils/media.js";
 
 class ParticipationControllers {
   // GET /participations
@@ -40,7 +41,16 @@ class ParticipationControllers {
       .findParticipationsByPartyId(id)
       .then((rows) => {
         console.info("Participants trouvés dans la base de données :", rows);
-        res.status(200).json(rows);
+        const enriched = rows.map((r) => ({
+          ...r,
+          utilisateur: r.utilisateur
+            ? {
+                ...r.utilisateur,
+                photo_url: profilePhotoUrl(r.utilisateur.photo_profil),
+              }
+            : r.utilisateur,
+        }));
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);

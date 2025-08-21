@@ -3,6 +3,7 @@
 import models from "../models/index.js";
 // import sendDiscordMessage from "../utils/discord.js";
 import axios from "axios";
+import { profilePhotoUrl, scenarioPhotoUrl } from "../utils/media.js";
 
 // Récupération de la variable d'environnement
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
@@ -14,7 +15,11 @@ class PartieControllers {
     models.partie
       .findAll()
       .then((rows) => {
-        res.status(200).json(rows);
+        const enriched = rows.map((p) => ({
+          ...p,
+          photo_scenario_url: scenarioPhotoUrl(p.photo_scenario),
+        }));
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);
@@ -29,7 +34,23 @@ class PartieControllers {
     models.partie
       .find(id)
       .then((row) => {
-        if (row) return res.status(200).json(row);
+        if (row) {
+          // Enrichir l'utilisateur inclus si présent + URL scénario calculée
+          const base = {
+            ...row,
+            photo_scenario_url: scenarioPhotoUrl(row.photo_scenario),
+          };
+          const enriched = row.utilisateur
+            ? {
+                ...base,
+                utilisateur: {
+                  ...row.utilisateur,
+                  photo_url: profilePhotoUrl(row.utilisateur.photo_profil),
+                },
+              }
+            : base;
+          return res.status(200).json(enriched);
+        }
         return res.sendStatus(404);
       })
       .catch((err) => {
@@ -45,7 +66,22 @@ class PartieControllers {
     models.partie
       .findPartieByUtilisateurId(id)
       .then((rows) => {
-        res.status(200).json(rows);
+        const enriched = rows.map((p) => {
+          const base = {
+            ...p,
+            photo_scenario_url: scenarioPhotoUrl(p.photo_scenario),
+          };
+          return p.utilisateur
+            ? {
+                ...base,
+                utilisateur: {
+                  ...p.utilisateur,
+                  photo_url: profilePhotoUrl(p.utilisateur.photo_profil),
+                },
+              }
+            : base;
+        });
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);
@@ -70,8 +106,8 @@ class PartieControllers {
         }
         partie.photo_scenario = `/${filePath}`; // garantit un chemin commençant par "/public/..."
       } else {
-        // Image par défaut
-        partie.photo_scenario = "public/profilPictures/dragonBook.webp";
+        // Image par défaut (non montée en volume)
+        partie.photo_scenario = "/public/_defaults/dragonBook.webp";
       }
 
       const created = await models.partie.insert(partie);
@@ -208,7 +244,22 @@ class PartieControllers {
     models.partie
       .getAffichageInfoPartie()
       .then((rows) => {
-        res.status(200).json(rows);
+        const enriched = rows.map((p) => {
+          const base = {
+            ...p,
+            photo_scenario_url: scenarioPhotoUrl(p.photo_scenario),
+          };
+          return p.utilisateur
+            ? {
+                ...base,
+                utilisateur: {
+                  ...p.utilisateur,
+                  photo_url: profilePhotoUrl(p.utilisateur.photo_profil),
+                },
+              }
+            : base;
+        });
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);
@@ -219,11 +270,25 @@ class PartieControllers {
   // GET /parties/affichage/:date
   static affichageInfoPartieDate(req, res) {
     const date = req.params.date;
-
     models.partie
       .getAffichageInfoPartieDate(date)
       .then((rows) => {
-        res.status(200).json(rows);
+        const enriched = rows.map((p) => {
+          const base = {
+            ...p,
+            photo_scenario_url: scenarioPhotoUrl(p.photo_scenario),
+          };
+          return p.utilisateur
+            ? {
+                ...base,
+                utilisateur: {
+                  ...p.utilisateur,
+                  photo_url: profilePhotoUrl(p.utilisateur.photo_profil),
+                },
+              }
+            : base;
+        });
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);
@@ -234,11 +299,25 @@ class PartieControllers {
   // GET /parties/utilisateur/:id
   static partieByUtilisateurId(req, res) {
     const utilisateurId = parseInt(req.params.id, 10);
-
     models.partie
       .findPartieByUtilisateurId(utilisateurId)
       .then((rows) => {
-        res.status(200).json(rows);
+        const enriched = rows.map((p) => {
+          const base = {
+            ...p,
+            photo_scenario_url: scenarioPhotoUrl(p.photo_scenario),
+          };
+          return p.utilisateur
+            ? {
+                ...base,
+                utilisateur: {
+                  ...p.utilisateur,
+                  photo_url: profilePhotoUrl(p.utilisateur.photo_profil),
+                },
+              }
+            : base;
+        });
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);
@@ -253,7 +332,11 @@ class PartieControllers {
     models.partie
       .findJoueursByPartieId(partieId)
       .then((rows) => {
-        res.status(200).json(rows);
+        const enriched = rows.map((u) => ({
+          ...u,
+          photo_url: profilePhotoUrl(u.photo_profil),
+        }));
+        res.status(200).json(enriched);
       })
       .catch((err) => {
         console.error(err);
