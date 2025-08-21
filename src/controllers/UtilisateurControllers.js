@@ -4,6 +4,7 @@ import fs from "fs";
 import sharp from "sharp";
 import argon2 from "argon2";
 import models from "../models/index.js"; // Assurez-vous que models/index.js est en ESM
+import { profilePhotoUrl } from "../utils/media.js";
 
 class UtilisateurControllers {
   // GET /utilisateurs
@@ -11,7 +12,9 @@ class UtilisateurControllers {
     models.utilisateur
       .findAll()
       .then((rows) => {
-        res.status(200).json(rows);
+        res.status(200).json(
+          rows.map((u) => ({ ...u, photo_url: profilePhotoUrl(u.photo_profil) }))
+        );
       })
       .catch((err) => {
         console.error(err);
@@ -27,7 +30,10 @@ class UtilisateurControllers {
     models.utilisateur
       .find(id)
       .then((row) => {
-        if (row) return res.status(200).json(row);
+        if (row)
+          return res
+            .status(200)
+            .json({ ...row, photo_url: profilePhotoUrl(row.photo_profil) });
         return res.sendStatus(404);
       })
       .catch((err) => {
@@ -44,12 +50,6 @@ class UtilisateurControllers {
       utilisateur.email = utilisateur.email.trim().toLowerCase();
     }
     console.info("utilisateur back is :", utilisateur);
-
-    // Valeur par défaut pour l'image de profil si non spécifiée
-    // Doit correspondre au dossier réellement servi par Express: "/public"
-    utilisateur.photo_profil =
-      utilisateur.photo_profil ||
-      "public/profilPictures/dragonBook.webp";
 
     try {
       // Vérification si l'email ou le pseudo existe déjà
@@ -285,7 +285,10 @@ class UtilisateurControllers {
     models.utilisateur
       .findProfileById(id)
       .then((row) => {
-        if (row) return res.status(200).json(row);
+        if (row)
+          return res
+            .status(200)
+            .json({ ...row, photo_url: profilePhotoUrl(row.photo_profil) });
         return res.sendStatus(404);
       })
       .catch((err) => {

@@ -1,3 +1,4 @@
+// src/app.js
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -29,22 +30,36 @@ if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
-// Middlewares
+// ---------- Middlewares ----------
 console.info("Configuration des middlewares...");
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// CORS: accepte FRONTEND_URL ou CORS_ORIGIN (liste séparée par des virgules)
+const rawOrigins =
+  process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = rawOrigins
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+console.info("CORS allowlist:", allowedOrigins);
+
 app.use(
   cors({
-    origin:
-      process.env.CORS_ORIGIN ||
-      process.env.FRONTEND_URL ||
-      "http://localhost:5173",
+    origin(origin, cb) {
+      // Autorise aussi les requêtes sans Origin (ex: curl, healthchecks, SSR)
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
-    optionsSuccessStatus: 200,
-  }),
+  })
 );
 
-// --- Healthchecks & debug ---
+// Préflight explicite (optionnel mais propre)
+app.options("*", cors());
+
+// ---------- Health & Debug ----------
 app.get("/health", (_req, res) => res.status(200).send("ok"));
 
 app.get("/debug/db", async (_req, res) => {
@@ -53,53 +68,58 @@ app.get("/debug/db", async (_req, res) => {
       await prisma.$queryRaw`SELECT NOW() AS now, current_setting('TimeZone') AS tz`;
     const [{ now, tz }] = nowRows;
 
-    // évite la dépendance au nom du modèle Prisma, on compte en SQL
+    // Compte des utilisateurs (PostgreSQL)
     const [{ count }] =
       await prisma.$queryRaw`SELECT COUNT(*)::int AS count FROM "utilisateur"`;
 
     res.json({ now, tz, users: count });
   } catch (e) {
     console.error("DEBUG/DB error:", e);
-    res.status(500).json({ error: "DB not reachable", detail: String(e?.message ?? e) });
+    res
+      .status(500)
+      .json({ error: "DB not reachable", detail: String(e?.message ?? e) });
   }
 });
 
-// Gestion des ressources statiques du dossier public (doit être AVANT le routeur)
+// ---------- Static /public AVANT le router ----------
 console.info("Serve les ressources statiques du dossier 'public'...");
-app.use("/public", express.static(path.join(__dirname, "..", "public")));
+app.use(
+  "/public",
+  express.static(path.join(__dirname, "..", "public"), {
+    maxAge: "1h",
+    etag: true,
+    index: false,
+  })
+);
 
-// Routing principal (tes routes métier)
+// ---------- Routes métier ----------
 console.info("Mise en place du routeur principal...");
 app.use(router);
 
-// Option: servir le build React si présent (utile en dev monorepo)
-// En prod on servira plutôt le front via un conteneur Nginx dédié.
+// ---------- Option: servir le build React si présent (dev mono-repo) ----------
 const reactDistPath = path.join(__dirname, "..", "..", "frontend", "dist");
 const reactIndexFile = path.join(reactDistPath, "index.html");
 
 if (fs.existsSync(reactIndexFile)) {
-  console.info(
-    "Dossier de build React détecté. Configuration pour servir l'application..."
-  );
+  console.info("Dossier de build React détecté. Configuration pour servir l'application...");
   app.use(express.static(reactDistPath));
   app.get("*", (_req, res) => res.sendFile(reactIndexFile));
 } else {
-  console.info(
-    "Aucun build React détecté, les routes API resteront accessibles seules."
-  );
+  console.info("Aucun build React détecté, les routes API resteront accessibles seules.");
 }
 
-// 404 explicite (après toutes les routes)
+// ---------- 404 ----------
 app.use((req, res) => {
-  res.status(404).json({ error: "Not Found", path: req.originalUrl });
+  res.status(404).json({ error: "Route non trouvée", path: req.originalUrl });
 });
 
-// Gestion d'erreurs globale
-// eslint-disable-next-line no-unused-vars
+// ---------- Erreurs ----------
+/* eslint-disable no-unused-vars */
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal Server Error" });
 });
+/* eslint-enable no-unused-vars */
 
 console.info("Application Express configurée avec succès.");
 
