@@ -31,3 +31,11 @@ public/uploads/
 public/profilPictures/
 package-lock.json
 package-lock.json
+
+# env files
+.env
+.env.*
+.env.docker
+!.env.example
+!.env.docker.example
+
