@@ -74,7 +74,10 @@ class UtilisateurManager extends AbstractManager {
         prenom: utilisateur.prenom,
         email: utilisateur.email,
         pseudo: utilisateur.pseudo,
-        role: utilisateur.role,
+        // N'update le rôle que s'il est fourni (évite de passer undefined à un enum Prisma)
+        ...(Object.prototype.hasOwnProperty.call(utilisateur, "role")
+          ? { role: utilisateur.role }
+          : {}),
         date_naissance: utilisateur.date_naissance || null,
         adresse: utilisateur.adresse || null,
         ville: utilisateur.ville || null,
