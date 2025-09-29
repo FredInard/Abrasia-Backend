@@ -94,6 +94,29 @@ class UtilisateurControllers {
     });
     console.info("Utilisateur avant traitement:", utilisateur);
 
+    // S'assurer que date_naissance est un objet Date (Prisma attend un Date pour les champs Date/DateTime)
+    // On parse strictement 'YYYY-MM-DD' et on construit une date en UTC pour éviter les ambiguïtés de fuseau.
+    if (utilisateur.date_naissance) {
+      if (typeof utilisateur.date_naissance === "string") {
+        const m = utilisateur.date_naissance.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) {
+          console.warn("Format de date invalide pour date_naissance:", utilisateur.date_naissance);
+          return res
+            .status(400)
+            .json({ error: "Format de date invalide pour date_naissance. Attendu: YYYY-MM-DD" });
+        }
+        const [_, y, mo, d] = m;
+        const utc = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d)));
+        if (Number.isNaN(utc.getTime())) {
+          console.warn("Date non valide après parsing pour date_naissance:", utilisateur.date_naissance);
+          return res
+            .status(400)
+            .json({ error: "Date de naissance invalide." });
+        }
+        utilisateur.date_naissance = utc;
+      }
+    }
+
     // Si un fichier est inclus, traiter et déplacer l'image vers public/profilPictures
     if (req.file) {
       try {

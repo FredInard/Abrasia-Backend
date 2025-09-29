@@ -121,6 +121,7 @@ router.put("/utilisateurs/:id/anonymize", verifyToken, UtilisateurControllers.an
 router.get("/parties/affichage", PartieControllers.affichageInfoPartie);
 router.get("/parties/player/:id", PartieControllers.getPartieByUtilisateurId);
 router.get("/parties/:id", PartieControllers.read);
+router.get("/parties", PartieControllers.affichageInfoPartie);
 router.post("/parties", verifyToken, upload.single("photo_scenario"), PartieControllers.add);
 router.put("/parties/:id", verifyToken, upload.single("photo_scenario"), PartieControllers.edit);
 router.delete("/parties/:id", verifyToken, PartieControllers.deleteByPartyId);
