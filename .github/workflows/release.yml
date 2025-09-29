@@ -1,3 +1,4 @@
+# .github\workflows\release.yml 
 name: release
 on:
   push:
@@ -11,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: docker/setup-buildx-action@v3
 
       - id: meta
@@ -28,8 +32,8 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          # on force des tags en minuscules, indépendants du nom du repo
           tags: |
             ghcr.io/fredinard/abrasia-backend:latest
             ghcr.io/fredinard/abrasia-backend:${{ steps.meta.outputs.date }}-${{ steps.meta.outputs.sha }}
