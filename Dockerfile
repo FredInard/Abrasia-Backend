@@ -2,9 +2,10 @@
     FROM node:22-alpine AS deps
     WORKDIR /app
     COPY package.json pnpm-lock.yaml ./
+    # PNPM via Corepack + install prod (avec lock)
     RUN corepack enable && pnpm install --frozen-lockfile
     
-    # ---------- build ----------
+    # ---------- build (génère Prisma Client) ----------
     FROM node:22-alpine AS build
     WORKDIR /app
     COPY --from=deps /app/node_modules ./node_modules
@@ -13,6 +14,7 @@
     COPY src ./src
     COPY public ./public
     COPY index.js ./
+    # Génère Prisma Client puis ne garde que les deps prod
     RUN corepack enable && npx prisma generate && pnpm prune --prod
     
     # ---------- runtime ----------
