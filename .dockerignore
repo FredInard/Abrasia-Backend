@@ -3,6 +3,7 @@ pnpm-store
 .git
 .gitignore
 .env
+.env.docker
 .DS_Store
 npm-debug.log*
 docker-compose*.yml
