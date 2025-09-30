@@ -1,4 +1,5 @@
-﻿services:
+﻿# docker-compose.api.yml
+services:
   api:
     build: .
     container_name: abrs-api
@@ -6,6 +7,6 @@
     ports:
       - "4242:4242"
     volumes:
-      - ./public/uploads:/app/public/uploads
-      - ./public/profilPictures:/app/public/profilPictures
+      - /srv/abrasia/backend-data/public/uploads:/app/public/uploads
+      - /srv/abrasia/backend-data/public/profilPictures:/app/public/profilPictures
     restart: unless-stopped
